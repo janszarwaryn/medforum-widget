@@ -1,0 +1,64 @@
+{
+  "name": "medforum-widget",
+  "version": "1.0.0",
+  "description": "Vue 2.7 widget component for medical forum integration with full TypeScript support",
+  "main": "./dist/medforum-widget.umd.js",
+  "module": "./dist/medforum-widget.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/medforum-widget.es.js",
+      "require": "./dist/medforum-widget.umd.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./dist/style.css": "./dist/medforum-widget.css"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run type-check && vite build",
+    "type-check": "vue-tsc --noEmit --skipLibCheck",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "vue",
+    "vue2",
+    "widget",
+    "component",
+    "medical",
+    "forum",
+    "typescript",
+    "medforum"
+  ],
+  "author": "jan.szarwaryn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jan.szarwaryn/medforum-widget.git"
+  },
+  "homepage": "https://github.com/jan.szarwaryn/medforum-widget#readme",
+  "bugs": {
+    "url": "https://github.com/jan.szarwaryn/medforum-widget/issues"
+  },
+  "peerDependencies": {
+    "vue": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "@vitejs/plugin-vue2": "^2.3.4",
+    "@vue/tsconfig": "^0.8.1",
+    "sass": "^1.97.3",
+    "terser": "^5.46.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vite-plugin-dts": "^4.5.4",
+    "vue": "^2.7.16",
+    "vue-tsc": "^2.2.12"
+  },
+  "type": "module"
+}

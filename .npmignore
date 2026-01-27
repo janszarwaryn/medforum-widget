@@ -1,0 +1,23 @@
+# Source files (only ship dist/)
+src/
+public/
+.claude/
+
+# Config files
+vite.config.ts
+tsconfig.json
+.gitignore
+
+# Development
+node_modules/
+.vscode/
+.idea/
+*.log
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation (except README)
+docs/
+examples/
