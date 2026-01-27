@@ -63,10 +63,10 @@
             :key="`orbit-dot-${cat.id}`"
             :cx="indicatorPositions[index].x"
             :cy="indicatorPositions[index].y"
-            r="12"
+            r="18"
             :fill="index === activeIndex ? cat.color : '#e0e0e0'"
             stroke="white"
-            stroke-width="3"
+            stroke-width="4"
             class="rotating-wheel__orbit-dot"
           />
 
@@ -78,6 +78,7 @@
               :x="labelPositions[index].x"
               :y="labelPositions[index].y"
               :text-anchor="labelPositions[index].anchor"
+              dominant-baseline="middle"
               class="rotating-wheel__label"
               :class="{ 'rotating-wheel__label--active': index === activeIndex }"
               role="button"
@@ -126,7 +127,7 @@
 import Vue from 'vue'
 import type { WheelCategory, Point, RotatingWheelData } from '../types/rotating-wheel'
 import { WHEEL_CONFIG, DEFAULT_CATEGORIES } from '../constants/wheel-config'
-import { polarToCartesian, generateDonutSegment, generateCurvedArrow } from '../utils/geometry'
+import { polarToCartesian, generateDonutSegment } from '../utils/geometry'
 
 export default Vue.extend({
   name: 'RotatingWheel',
@@ -159,28 +160,6 @@ export default Vue.extend({
           WHEEL_CONFIG.indicatorRadius,
           cat.arrowAngle
         )
-      )
-    },
-
-    // Strzałka z aktywnego dota do segmentu
-    arrowPath(): string {
-      const activeCategory = this.activeCategory
-      const start = polarToCartesian(
-        this.wheelCenter,
-        WHEEL_CONFIG.indicatorRadius,
-        activeCategory.arrowAngle
-      )
-      const end = polarToCartesian(
-        this.wheelCenter,
-        WHEEL_CONFIG.outerRadius + 5,
-        activeCategory.arrowAngle
-      )
-
-      return generateCurvedArrow(
-        this.wheelCenter,
-        activeCategory.arrowAngle,
-        WHEEL_CONFIG.indicatorRadius,
-        WHEEL_CONFIG.outerRadius + 5
       )
     },
 
@@ -273,11 +252,24 @@ export default Vue.extend({
       )
 
       // Determine text-anchor based on angle
-      const anchor = angle === 45 || angle === 135 ? 'start'
-                    : angle === 225 || angle === 315 ? 'end'
-                    : 'middle'
+      let anchor = 'middle'
+      let xOffset = 0
 
-      return { ...pos, anchor }
+      if (angle === 45 || angle === 135) {
+        // Prawa strona: tekst zaczyna się od kropki i idzie w prawo
+        anchor = 'start'
+        xOffset = 25  // Przerwa 25px od kropki
+      } else if (angle === 225 || angle === 315) {
+        // Lewa strona: tekst kończy się przy kropce i idzie w lewo
+        anchor = 'end'
+        xOffset = -25  // Przerwa 25px od kropki
+      }
+
+      return {
+        x: pos.x + xOffset,
+        y: pos.y,
+        anchor
+      }
     }
   }
 })
@@ -490,21 +482,11 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     }
   }
 
-  &__center-circle {
-    fill: $color-white;
-    filter: drop-shadow($shadow-md);
-  }
-
   // ============================================================================
   // ORBIT CIRCLE & DOTS
   // ============================================================================
   &__orbit {
     pointer-events: none;
-  }
-
-  &__arrow {
-    pointer-events: none;
-    transition: opacity 300ms $easing-smooth;
   }
 
   &__orbit-dot {
@@ -547,26 +529,52 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // ============================================================================
   &__center-content {
     @include absolute-center;
-    width: 380px;  // Zwiększone dla dłuższych tekstów
+    width: 280px;  // Zmniejszone żeby mieścić się w donucie (innerRadius ~160)
+    max-height: 280px;  // Maksymalna wysokość = szerokość dla koła
     text-align: center;
     pointer-events: none;
     z-index: 10;
+    overflow: hidden;  // Ukryj nadmiar treści
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__center-inner {
+    width: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   &__center-title {
-    font-size: $font-size-subtitle;
+    font-size: 28px;  // Zmniejszone z 32px
     font-weight: $font-weight-bold;
     color: $color-text-primary;
-    margin: 0 0 16px 0;
+    margin: 0 0 12px 0;
     line-height: 1.2;
+
+    // Line clamp dla tytułu (max 2 linie)
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__center-description {
-    font-size: 14px;  // Zmniejszone z 15px dla dłuższych tekstów
+    font-size: 13px;  // Zmniejszone dla lepszego dopasowania
     font-weight: $font-weight-regular;
     color: $color-text-secondary;
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0;
+
+    // Line clamp dla opisu (max 6 linii)
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
   }
 
   // ============================================================================
