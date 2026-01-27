@@ -43,6 +43,7 @@
               class="rotating-wheel__segment"
               :class="{ 'rotating-wheel__segment--active': index === activeIndex }"
               :aria-label="`Segment ${cat.label}`"
+              @click="selectCategory(index)"
             />
           </g>
 
@@ -68,6 +69,7 @@
             stroke="white"
             stroke-width="4"
             class="rotating-wheel__orbit-dot"
+            @click="selectCategory(index)"
           />
 
           <!-- OPTIMIZED: Array access instead of Map lookups -->
@@ -514,7 +516,7 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
 
     &:focus,
     &:focus-visible {
-      @include focus-outline;
+      outline: none;  // Usunięty niebieski border
     }
 
     &--active {

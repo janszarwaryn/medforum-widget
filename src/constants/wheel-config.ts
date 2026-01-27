@@ -3,9 +3,9 @@ import type { WheelConfig, WheelCategory } from '../types/rotating-wheel'
 export const WHEEL_CONFIG: WheelConfig = {
   svgSize: 640,          // Zwiększone z 500 - żeby pomieścić etykiety
   outerRadius: 200,
-  innerRadius: 160,      // Zwiększone z 140 - cieńszy donut
-  indicatorRadius: 240,  // Zmniejszone z 280 - bliżej donuta
-  labelRadius: 240,      // Taka sama jak indicatorRadius - teksty przy kropkach
+  innerRadius: 150,      // Zmniejszone z 160 - grubszy donut
+  indicatorRadius: 260,  // Zwiększone z 240 - dalej od donuta
+  labelRadius: 260,      // Taka sama jak indicatorRadius - teksty przy kropkach
   animationDuration: 600,
   get centerX() { return this.svgSize / 2 },  // Teraz 320
   get centerY() { return this.svgSize / 2 }   // Teraz 320
