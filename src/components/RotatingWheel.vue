@@ -1,5 +1,21 @@
 <template>
   <div class="rotating-wheel" role="region" aria-label="Koło usług 360°">
+    <!-- Pattern SVG - left top corner -->
+    <img
+      src="/images/pattern.svg"
+      alt=""
+      class="rotating-wheel__pattern"
+      aria-hidden="true"
+    />
+
+    <!-- Pattern SVG - right top corner -->
+    <img
+      src="/images/pattern.svg"
+      alt=""
+      class="rotating-wheel__pattern-right"
+      aria-hidden="true"
+    />
+
     <!-- Title -->
     <h2 class="rotating-wheel__title">
       Wsparcie i obsługa organizacji 360°
@@ -394,6 +410,7 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
 // COMPONENT STYLES
 // ============================================================================
 .rotating-wheel {
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
   padding: 60px 20px;
@@ -401,9 +418,37 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   background-color: #F7F7F9;  // Jasno-szare tło
 
   // ============================================================================
+  // PATTERN DECORATION
+  // ============================================================================
+  &__pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 350px;
+    height: 350px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.8;
+  }
+
+  &__pattern-right {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 210px;
+    height: 210px;
+    transform: rotate(180deg);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.8;
+  }
+
+  // ============================================================================
   // TITLE
   // ============================================================================
   &__title {
+    position: relative;
+    z-index: 1;
     font-size: $font-size-title;
     font-weight: $font-weight-bold;
     color: $color-text-primary;
@@ -422,11 +467,13 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // LAYOUT GRID
   // ============================================================================
   &__content {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: 0.6fr 1.4fr;  // Persona mniejsza, koło większe
-    gap: 40px;  // Zmniejszony gap
+    gap: 25px;  // Bardziej zwarta kompozycja
     align-items: center;
-    margin-bottom: 40px;
+    margin-bottom: 0;  // CTA bezpośrednio pod contentem
 
     @media (max-width: $breakpoint-tablet) {
       grid-template-columns: 1fr;
@@ -439,7 +486,7 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // ============================================================================
   &__persona {
     position: relative;  // Kontener dla absolute child
-    min-height: 580px;  // Wysokość do dołu orbity (centerY:320 + radius:260)
+    min-height: 480px;  // Dopasowane do proporcji orbity (~92% wysokości)
     overflow: visible;
   }
 
@@ -447,14 +494,14 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     position: absolute;  // Absolutna pozycja
     bottom: 0;  // Przyczepione do dołu kontenera
     left: 50%;
-    transform: translateX(-50%) scale(1.35);  // Wycentrowane + powiększone 35%
+    transform: translateX(-50%) scale(1.2);  // Wycentrowane + powiększone
     width: 100%;
     height: 100%;
-    max-height: 580px;  // Maksymalna wysokość = wysokość do dołu orbity
+    max-height: 480px;  // Zsynchronizowane z min-height kontenera
     display: block;
     object-fit: contain;
     object-position: center bottom;
-    z-index: 1;  // Niższy z-index - pod wykresem
+    z-index: 1;  // Niższy z-index - pod wykresem (wykres ma z-index: 10)
   }
 
   // ============================================================================
@@ -589,8 +636,9 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // CTA
   // ============================================================================
   &__cta {
+    position: relative;
+    z-index: 1;
     text-align: center;
-    padding-top: 20px;
   }
 
   &__cta-text {
@@ -598,15 +646,14 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     font-size: 18px;
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
-    text-decoration: none;
-    border-bottom: 3px solid $color-text-primary;
-    padding-bottom: 4px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
     cursor: pointer;
-    transition: color 200ms ease, border-color 200ms ease;
+    transition: color 200ms ease, text-decoration-color 200ms ease;
 
     &:hover {
       color: color-segment('marketing');
-      border-color: color-segment('marketing');
+      text-decoration-color: color-segment('marketing');
     }
   }
 }
