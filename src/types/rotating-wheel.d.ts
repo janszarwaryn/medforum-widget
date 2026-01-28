@@ -38,7 +38,6 @@ export interface ArrowConfig {
 export interface RotatingWheelData {
   readonly categories: ReadonlyArray<WheelCategory>
   activeIndex: number
-  isAnimating: boolean
   segmentPaths: string[]
   labelPositions: Array<{ x: number; y: number; anchor: string }>
   wheelCenter: Point

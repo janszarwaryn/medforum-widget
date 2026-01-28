@@ -1,6 +1,6 @@
 <template>
   <div class="rotating-wheel" role="region" aria-label="Koło usług 360°">
-    <!-- Pattern SVG - left top corner -->
+    
     <img
       src="/images/pattern.svg"
       alt=""
@@ -8,12 +8,12 @@
       aria-hidden="true"
     />
 
-    <!-- Title -->
+    
     <h2 class="rotating-wheel__title">
       Wsparcie i obsługa organizacji 360°
     </h2>
 
-    <!-- Auto-rotate toggle -->
+    
     <div class="rotating-wheel__auto-toggle">
       <label class="rotating-wheel__toggle-label">
         <input
@@ -22,12 +22,12 @@
           class="rotating-wheel__toggle-input"
         />
         <span class="rotating-wheel__toggle-slider"></span>
-        <span class="rotating-wheel__toggle-text">automatyczna karuzela ({{ autoRotate ? countdown + 's' : '8s' }})</span>
+        <span class="rotating-wheel__toggle-text">automatyczna karuzela ({{ autoRotate ? countdown + 's' : UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS + 's' }})</span>
       </label>
     </div>
 
     <div class="rotating-wheel__content">
-      <!-- Left: Persona Image -->
+      
       <div class="rotating-wheel__persona">
         <transition name="fade" mode="out-in">
           <img
@@ -39,7 +39,7 @@
         </transition>
       </div>
 
-      <!-- Right: Interactive Wheel -->
+      
       <div class="rotating-wheel__wheel-container">
         <svg
           :viewBox="`0 0 ${WHEEL_CONFIG.svgSize} ${WHEEL_CONFIG.svgSize}`"
@@ -48,13 +48,13 @@
           aria-labelledby="wheel-title wheel-desc"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <!-- Accessibility labels -->
+          
           <title id="wheel-title">Koło kategorii usług 360°</title>
           <desc id="wheel-desc">
             Interaktywne koło pokazujące 4 kategorie: Komunikacja, Marketing, Sprzedaż, Strategia
           </desc>
 
-          <!-- OPTIMIZED: Array access (no Map overhead for 4 items) -->
+          
           <g role="list" aria-label="Segmenty kategorii">
             <path
               v-for="(cat, index) in categories"
@@ -68,7 +68,7 @@
             />
           </g>
 
-          <!-- Outer orbit circle (szara orbita) -->
+          
           <circle
             :cx="wheelCenter.x"
             :cy="wheelCenter.y"
@@ -79,7 +79,7 @@
             class="rotating-wheel__orbit"
           />
 
-          <!-- Arrow indicator pointing to active category -->
+          
           <g
             class="rotating-wheel__arrow-indicator"
             :style="{
@@ -88,7 +88,7 @@
             }"
           >
             <defs>
-              <!-- Arrowhead marker - open V shape (szpiciasty) -->
+              
               <marker
                 id="arrow-head-marker"
                 markerWidth="12"
@@ -109,7 +109,7 @@
               </marker>
             </defs>
 
-            <!-- Arrow arc segments with decreasing opacity for smooth fade -->
+            
             <path
               v-for="(segment, idx) in arrowPathSegments"
               :key="`arrow-seg-${idx}`"
@@ -124,21 +124,21 @@
             />
           </g>
 
-          <!-- Category indicator dots on orbit (4 corners) -->
+          
           <circle
             v-for="(cat, index) in categories"
             :key="`orbit-dot-${cat.id}`"
             :cx="indicatorPositions[index].x"
             :cy="indicatorPositions[index].y"
-            r="18"
+            :r="UI_CONFIG.ORBIT_DOT_RADIUS"
             :fill="index === activeIndex ? cat.color : '#e0e0e0'"
             stroke="white"
-            stroke-width="4"
+            :stroke-width="UI_CONFIG.ORBIT_DOT_STROKE_WIDTH"
             class="rotating-wheel__orbit-dot"
             @click="selectCategory(index)"
           />
 
-          <!-- OPTIMIZED: Array access instead of Map lookups -->
+          
           <g role="list" aria-label="Kategorie">
             <text
               v-for="(cat, index) in categories"
@@ -162,7 +162,7 @@
           </g>
         </svg>
 
-        <!-- Center content overlay (HTML for better text wrapping) -->
+        
         <div class="rotating-wheel__center-content" aria-live="polite">
           <transition name="fade-text" mode="out-in">
             <div :key="activeCategory.id" class="rotating-wheel__center-inner">
@@ -178,7 +178,7 @@
       </div>
     </div>
 
-    <!-- CTA Link -->
+    
     <div class="rotating-wheel__cta">
       <a
         href="#oferta"
@@ -195,6 +195,7 @@
 import Vue from 'vue'
 import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment } from '../types/rotating-wheel'
 import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG } from '../constants/wheel-config'
+import { UI_CONFIG } from '../constants/ui-config'
 import { polarToCartesian, generateDonutSegment, generateArrowArc } from '../utils/geometry'
 
 export default Vue.extend({
@@ -203,7 +204,6 @@ export default Vue.extend({
   data(): RotatingWheelData {
     return {
       activeIndex: 0,
-      isAnimating: false,
       categories: DEFAULT_CATEGORIES,
       segmentPaths: [],
       labelPositions: [],
@@ -216,7 +216,7 @@ export default Vue.extend({
       currentRotation: 315,
       autoRotate: false,
       autoRotateInterval: null,
-      countdown: 8
+      countdown: UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
     }
   },
 
@@ -241,14 +241,16 @@ export default Vue.extend({
       return this.currentRotation
     },
 
-    // Expose WHEEL_CONFIG to template
     WHEEL_CONFIG() {
       return WHEEL_CONFIG
     },
 
-    // Expose ARROW_CONFIG to template
     ARROW_CONFIG() {
       return ARROW_CONFIG
+    },
+
+    UI_CONFIG() {
+      return UI_CONFIG
     }
   },
 
@@ -318,6 +320,35 @@ export default Vue.extend({
   },
 
   methods: {
+    calculateRotationSteps(currentRotation: number): number {
+      return Math.floor(currentRotation / 360)
+    },
+
+    normalizeRotationTarget(
+      currentRotation: number,
+      currentBaseAngle: number,
+      targetAngle: number
+    ): number {
+      const diff = targetAngle - currentBaseAngle
+      const rotationSteps = this.calculateRotationSteps(currentRotation)
+
+      if (diff < 0 && Math.abs(diff) > 180) {
+        return targetAngle + (rotationSteps + 1) * 360
+      }
+
+      if (diff > 0 && Math.abs(diff) > 180) {
+        return targetAngle + (rotationSteps - 1) * 360
+      }
+
+      let normalizedTarget = targetAngle + rotationSteps * 360
+
+      if (normalizedTarget < currentRotation) {
+        normalizedTarget += 360
+      }
+
+      return normalizedTarget
+    },
+
     selectCategory(index: number, fromAutoRotate: boolean = false): void {
       if (index === this.activeIndex) return
 
@@ -327,42 +358,19 @@ export default Vue.extend({
 
       const previousIndex = this.activeIndex
       const targetAngle = this.categories[index].arrowAngle
-
-      // Normalize rotation to always go clockwise
-      // If target angle is less than current base angle, add 360° to go "the long way"
       const currentBaseAngle = this.categories[this.activeIndex].arrowAngle
-      let normalizedTarget = targetAngle
 
-      // Calculate the difference
-      const diff = targetAngle - currentBaseAngle
-
-      // If going backwards (negative diff) and it's a large jump (like 315° → 45°)
-      // we want to go forward through 360° instead
-      if (diff < 0 && Math.abs(diff) > 180) {
-        // Going from high angle to low angle - add 360° to target
-        const rotationSteps = Math.floor(this.currentRotation / 360)
-        normalizedTarget = targetAngle + (rotationSteps + 1) * 360
-      } else if (diff > 0 && Math.abs(diff) > 180) {
-        // Going from low angle to high angle backwards - subtract 360°
-        const rotationSteps = Math.floor(this.currentRotation / 360)
-        normalizedTarget = targetAngle + rotationSteps * 360
-      } else {
-        // Normal case - adjust to current rotation level
-        const rotationSteps = Math.floor(this.currentRotation / 360)
-        normalizedTarget = targetAngle + rotationSteps * 360
-
-        // Ensure we're going forward
-        if (normalizedTarget < this.currentRotation) {
-          normalizedTarget += 360
-        }
-      }
+      const normalizedTarget = this.normalizeRotationTarget(
+        this.currentRotation,
+        currentBaseAngle,
+        targetAngle
+      )
 
       this.currentRotation = normalizedTarget
       this.activeIndex = index
 
-      // Emit event for parent components
       this.$emit('category-change', {
-        category: this.activeCategory,
+        category: this.categories[index],
         index,
         previousIndex
       })
@@ -405,13 +413,11 @@ export default Vue.extend({
       let xOffset = 0
 
       if (angle === 45 || angle === 135) {
-        // Prawa strona: tekst zaczyna się od kropki i idzie w prawo
         anchor = 'start'
-        xOffset = 25  // Przerwa 25px od kropki
+        xOffset = UI_CONFIG.LABEL_OFFSET_FROM_DOT
       } else if (angle === 225 || angle === 315) {
-        // Lewa strona: tekst kończy się przy kropce i idzie w lewo
         anchor = 'end'
-        xOffset = -25  // Przerwa 25px od kropki
+        xOffset = -UI_CONFIG.LABEL_OFFSET_FROM_DOT
       }
 
       return {
@@ -423,13 +429,13 @@ export default Vue.extend({
 
     startAutoRotate(): void {
       this.stopAutoRotate()
-      this.countdown = 8
+      this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
       this.autoRotateInterval = window.setInterval(() => {
         this.countdown--
         if (this.countdown === 0) {
           const next = (this.activeIndex + 1) % this.categories.length
           this.selectCategory(next, true)
-          this.countdown = 8
+          this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
         }
       }, 1000)
     },
@@ -438,7 +444,7 @@ export default Vue.extend({
       if (this.autoRotateInterval !== null) {
         clearInterval(this.autoRotateInterval)
         this.autoRotateInterval = null
-        this.countdown = 8
+        this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
       }
     }
   }
@@ -449,9 +455,9 @@ export default Vue.extend({
 @use 'sass:map';
 @use 'sass:math';
 
-// ============================================================================
-// COLOR PALETTE (PUBLIC API - EXACT VALUES from design!)
-// ============================================================================
+
+
+
 $rotating-wheel-color-communication: #2d9f37b2 !default;
 $rotating-wheel-color-marketing: #1790c9cc !default;
 $rotating-wheel-color-sales: #f3aa21cf !default;
@@ -470,9 +476,9 @@ $color-text-inactive: #999 !default;
 $color-white: #fff !default;
 $color-border: #e0e0e0 !default;
 
-// ============================================================================
-// TYPOGRAPHY (EXACT from design specs!)
-// ============================================================================
+
+
+
 $font-family-base: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif !default;
 
 $font-size-title: 52px !default;
@@ -487,48 +493,48 @@ $font-weight-bold: 700 !default;
 
 $letter-spacing-tight: -1px !default;
 
-// ============================================================================
-// SPACING & SIZING
-// ============================================================================
+
+
+
 $rotating-wheel-animation-duration: 600ms !default;
 
-// PRIVATE (internal use, prefix with _)
+
 $_wheel-size: 640px;  // Zwiększone z 500px - żeby pomieścić etykiety
 $_outer-radius: 200px;
 $_inner-radius: 140px;
 $_center-x: math.div($_wheel-size, 2);  // Teraz 320px
 $_center-y: math.div($_wheel-size, 2);  // Teraz 320px
 
-// ============================================================================
-// ANIMATION
-// ============================================================================
+
+
+
 $duration-arrow: 600ms !default;
 $duration-text: 300ms !default;
 $duration-image: 400ms !default;
 $easing-smooth: cubic-bezier(0.4, 0, 0.2, 1) !default;
 
-// ============================================================================
-// BREAKPOINTS
-// ============================================================================
+
+
+
 $breakpoint-mobile: 768px !default;
 $breakpoint-tablet: 1024px !default;
 
-// ============================================================================
-// SHADOWS
-// ============================================================================
+
+
+
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12) !default;
 $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
 
-// ============================================================================
-// FUNCTIONS
-// ============================================================================
+
+
+
 @function color-segment($name) {
   @return map.get($colors-segments, $name);
 }
 
-// ============================================================================
-// MIXINS
-// ============================================================================
+
+
+
 @mixin transition-transform($duration: $rotating-wheel-animation-duration) {
   transition: transform $duration $easing-smooth;
 
@@ -558,9 +564,9 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   outline-offset: 4px;
 }
 
-// ============================================================================
-// COMPONENT STYLES
-// ============================================================================
+
+
+
 .rotating-wheel {
   position: relative;
   max-width: 1200px;
@@ -870,9 +876,9 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   }
 }
 
-// ============================================================================
-// VUE TRANSITIONS
-// ============================================================================
+
+
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity $duration-image $easing-smooth;
 }
@@ -887,9 +893,9 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   opacity: 0;
 }
 
-// ============================================================================
-// ACCESSIBILITY
-// ============================================================================
+
+
+
 @media (prefers-reduced-motion: reduce) {
   .rotating-wheel {
     &__segment,
