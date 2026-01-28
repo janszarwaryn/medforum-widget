@@ -1,65 +1,34 @@
 # Medforum Widget
 
-Vue 2.7 widget with rotating wheel component + PHP 8 API backend.
+Vue 2.7 + PHP 8 rotating wheel widget.
 
-## Installation
+## Quick Start
 
 ```bash
 npm install
+npm run full      # Starts API (localhost:8000) + Vite (localhost:5173)
 ```
 
-## Development
+Open: http://localhost:5173
+
+## Build
 
 ```bash
-npm run dev
+npm run build     # Output: dist/
 ```
 
-Starts both API (localhost:8000) and Vite dev server (localhost:5173).
-
-Access: http://localhost:5173
-
-## Production Build
-
-```bash
-npm run build
-```
-
-Output: `dist/` (ES + UMD + CSS + types)
-
-## Deployment (Coolify)
+## Deploy (Coolify)
 
 1. Push to Git
-2. Coolify: Select **Dockerfile** build pack
-3. Set port: **8080**
-4. Set domain: your-domain.com
-5. Deploy
+2. Coolify: Dockerfile buildpack, port 8080
+3. Deploy
 
-CORS already configured for: www.rekru-medforum.jspace.pl
+## Tech
 
-## Project Structure
-
-```
-medforum-widget/
-├── api/              # PHP 8 backend
-│   ├── index.php     # API endpoint
-│   └── categories.json
-├── src/              # Vue 2.7 + TypeScript
-├── dist/             # Build output
-└── Dockerfile        # Production container
-```
-
-## Commands
-
-```bash
-npm run dev          # Start API + Vite (both servers)
-npm run build        # Production build
-npm run type-check   # TypeScript validation
-```
-
-## Docs
-
-- `api/README.md` - Backend details
-- `CLAUDE.md` - Claude Code guidelines
+- Vue 2.7 + TypeScript
+- PHP 8 API (no dependencies)
+- Vite build system
+- Docker + Nginx production
 
 ## License
 
