@@ -45,6 +45,9 @@ export interface RotatingWheelData {
   arrowTransformOrigin: string
   arrowPathSegments: ReadonlyArray<ArrowPathSegment>
   currentRotation: number
+  autoRotate: boolean
+  autoRotateInterval: number | null
+  countdown: number
 }
 
 // Configuration object for flexibility

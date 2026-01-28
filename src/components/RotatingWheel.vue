@@ -13,6 +13,19 @@
       Wsparcie i obsługa organizacji 360°
     </h2>
 
+    <!-- Auto-rotate toggle -->
+    <div class="rotating-wheel__auto-toggle">
+      <label class="rotating-wheel__toggle-label">
+        <input
+          type="checkbox"
+          v-model="autoRotate"
+          class="rotating-wheel__toggle-input"
+        />
+        <span class="rotating-wheel__toggle-slider"></span>
+        <span class="rotating-wheel__toggle-text">automatyczna karuzela ({{ autoRotate ? countdown + 's' : '8s' }})</span>
+      </label>
+    </div>
+
     <div class="rotating-wheel__content">
       <!-- Left: Persona Image -->
       <div class="rotating-wheel__persona">
@@ -200,7 +213,10 @@ export default Vue.extend({
       },
       arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
       arrowPathSegments: [],
-      currentRotation: 315  // Track accumulated rotation for smooth clockwise animation
+      currentRotation: 315,
+      autoRotate: false,
+      autoRotateInterval: null,
+      countdown: 8
     }
   },
 
@@ -233,6 +249,16 @@ export default Vue.extend({
     // Expose ARROW_CONFIG to template
     ARROW_CONFIG() {
       return ARROW_CONFIG
+    }
+  },
+
+  watch: {
+    autoRotate(enabled: boolean): void {
+      if (enabled) {
+        this.startAutoRotate()
+      } else {
+        this.stopAutoRotate()
+      }
     }
   },
 
@@ -288,11 +314,16 @@ export default Vue.extend({
 
   beforeDestroy(): void {
     document.removeEventListener('keydown', this.handleKeyDown)
+    this.stopAutoRotate()
   },
 
   methods: {
-    selectCategory(index: number): void {
+    selectCategory(index: number, fromAutoRotate: boolean = false): void {
       if (index === this.activeIndex) return
+
+      if (!fromAutoRotate && this.autoRotate) {
+        this.autoRotate = false
+      }
 
       const previousIndex = this.activeIndex
       const targetAngle = this.categories[index].arrowAngle
@@ -387,6 +418,27 @@ export default Vue.extend({
         x: pos.x + xOffset,
         y: pos.y,
         anchor
+      }
+    },
+
+    startAutoRotate(): void {
+      this.stopAutoRotate()
+      this.countdown = 8
+      this.autoRotateInterval = window.setInterval(() => {
+        this.countdown--
+        if (this.countdown === 0) {
+          const next = (this.activeIndex + 1) % this.categories.length
+          this.selectCategory(next, true)
+          this.countdown = 8
+        }
+      }, 1000)
+    },
+
+    stopAutoRotate(): void {
+      if (this.autoRotateInterval !== null) {
+        clearInterval(this.autoRotateInterval)
+        this.autoRotateInterval = null
+        this.countdown = 8
       }
     }
   }
@@ -541,14 +593,84 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     font-weight: $font-weight-bold;
     color: $color-text-primary;
     text-align: center;
-    margin-bottom: 60px;
+    margin-bottom: 0;
     letter-spacing: $letter-spacing-tight;
     line-height: 1.2;
 
     @media (max-width: $breakpoint-mobile) {
       font-size: 36px;
+    }
+  }
+
+  // ============================================================================
+  // AUTO-ROTATE TOGGLE
+  // ============================================================================
+  &__auto-toggle {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    margin: 0 0 60px 0;
+    padding: 0;
+
+    @media (max-width: $breakpoint-mobile) {
       margin-bottom: 40px;
     }
+  }
+
+  &__toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  &__toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+
+    &:checked + .rotating-wheel__toggle-slider {
+      background-color: #2D9F37;
+
+      &::before {
+        transform: translateX(20px);
+      }
+    }
+
+    &:focus-visible + .rotating-wheel__toggle-slider {
+      outline: 2px solid #2D9F37;
+      outline-offset: 2px;
+    }
+  }
+
+  &__toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    background-color: #e0e0e0;
+    border-radius: 24px;
+    transition: background-color 300ms $easing-smooth;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: transform 300ms $easing-smooth;
+    }
+  }
+
+  &__toggle-text {
+    font-size: 16px;
+    font-weight: $font-weight-regular;
+    color: $color-text-secondary;
   }
 
   // ============================================================================
@@ -688,12 +810,12 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // ============================================================================
   &__center-content {
     @include absolute-center;
-    width: 280px;  // Zmniejszone żeby mieścić się w donucie (innerRadius ~160)
-    max-height: 280px;  // Maksymalna wysokość = szerokość dla koła
+    width: 280px;
+    max-height: 280px;
     text-align: center;
     pointer-events: none;
     z-index: 10;
-    overflow: hidden;  // Ukryj nadmiar treści
+    overflow: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -702,37 +824,23 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   &__center-inner {
     width: 100%;
     max-height: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   &__center-title {
-    font-size: 28px;  // Zmniejszone z 32px
+    font-size: 28px;
     font-weight: $font-weight-bold;
     color: $color-text-primary;
     margin: 0 0 12px 0;
     line-height: 1.2;
-
-    // Line clamp dla tytułu (max 2 linie)
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   &__center-description {
-    font-size: 13px;  // Zmniejszone dla lepszego dopasowania
+    font-size: 13px;
     font-weight: $font-weight-regular;
     color: $color-text-secondary;
     line-height: 1.5;
     margin: 0;
-
-    // Line clamp dla opisu (max 6 linii)
-    display: -webkit-box;
-    -webkit-line-clamp: 6;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
     word-wrap: break-word;
   }
 
