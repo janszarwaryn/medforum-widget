@@ -61,3 +61,7 @@ export const ARROW_CONFIG = Object.freeze({
   segmentCount: 10,
   opacityStops: Object.freeze([0.05, 0.15, 0.27, 0.40, 0.53, 0.65, 0.75, 0.84, 0.92, 1.0])
 })
+
+export const CAROUSEL_DURATION = 28000  // ms
+export const CATEGORY_DISPLAY_DURATION = 4000  // ms
+export const JUMP_DURATION = 600  // ms

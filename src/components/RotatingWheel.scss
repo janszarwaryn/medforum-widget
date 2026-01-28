@@ -228,33 +228,6 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     transform-origin: 320px 320px;
   }
 
-  &__arrow-indicator--carousel {
-    animation: rotate-carousel 28s linear infinite;
-    transform: rotate(315deg);
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
-  }
-
-  &__arrow-indicator--jumping {
-    transition: transform 600ms $easing-smooth;
-    animation: none;
-
-    @media (prefers-reduced-motion: reduce) {
-      transition: none;
-    }
-  }
-
-  @keyframes rotate-carousel {
-    from {
-      transform: rotate(315deg);
-    }
-    to {
-      transform: rotate(675deg);
-    }
-  }
-
   &__arrow-path {
   }
 

@@ -63,14 +63,10 @@
 
           <g
             class="rotating-wheel__arrow-indicator"
-            :class="{
-              'rotating-wheel__arrow-indicator--carousel': !isJumping,
-              'rotating-wheel__arrow-indicator--jumping': isJumping
-            }"
-            :style="isJumping ? {
-              transform: `rotate(${currentRotation}deg)`,
+            :style="{
+              transform: `rotate(${arrowRotation}deg)`,
               transformOrigin: `${wheelCenter.x}px ${wheelCenter.y}px`
-            } : {}"
+            }"
             role="img"
             aria-label="Wskaźnik aktywnej kategorii"
           >
@@ -198,7 +194,7 @@
 <script lang="ts">
 import Vue from 'vue'
 import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment, CenterDisplayMode } from '../types/rotating-wheel'
-import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG } from '../constants/wheel-config'
+import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG, CAROUSEL_DURATION, CATEGORY_DISPLAY_DURATION, JUMP_DURATION } from '../constants/wheel-config'
 import { UI_CONFIG } from '../constants/ui-config'
 import { polarToCartesian, generateDonutSegment, generateArrowArc } from '../utils/geometry'
 
@@ -217,10 +213,12 @@ export default Vue.extend({
       },
       arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
       arrowPathSegments: [],
-      currentRotation: 315,
-      centerDisplayMode: 'category' as CenterDisplayMode,
-      carouselTimers: [] as number[],
+      arrowRotation: 315,
+      previousArrowRotation: 315,
+      animationFrameId: null as number | null,
       carouselStartTime: 0,
+      logoTimer: null as number | null,
+      centerDisplayMode: 'category' as CenterDisplayMode,
       isJumping: false,
       windowWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
       resizeTimeout: null as number | null
@@ -308,7 +306,7 @@ export default Vue.extend({
     if (!prefersReducedMotion) {
       this.isMobile
         ? (this.activeIndex = 0, this.centerDisplayMode = 'logo', this.isJumping = true)
-        : this.startCarousel(0)
+        : this.startCarouselAnimation(0)
     } else {
       this.activeIndex = 0
       this.centerDisplayMode = 'category'
@@ -319,14 +317,62 @@ export default Vue.extend({
   },
 
   beforeDestroy(): void {
-    this.clearCarouselTimers()
-    if (this.resizeTimeout !== null) window.clearTimeout(this.resizeTimeout)
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId)
+      this.animationFrameId = null
+    }
+    if (this.logoTimer !== null) {
+      clearTimeout(this.logoTimer)
+      this.logoTimer = null
+    }
+    if (this.resizeTimeout !== null) {
+      clearTimeout(this.resizeTimeout)
+      this.resizeTimeout = null
+    }
     window.removeEventListener('resize', this.handleResize)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     document.removeEventListener('keydown', this.handleKeyDown)
   },
 
   methods: {
+    didCrossAngle(prevAngle: number, currAngle: number, checkpointAngle: number): boolean {
+      // Handle wrap-around (359° → 1°)
+      if (prevAngle > 270 && currAngle < 90) {
+        return checkpointAngle > prevAngle || checkpointAngle < currAngle
+      }
+
+      // Normal case
+      return prevAngle < checkpointAngle && currAngle >= checkpointAngle
+    },
+
+    updateActiveCategoryBasedOnArrow(): void {
+      const currentNormalized = this.arrowRotation % 360
+      const previousNormalized = this.previousArrowRotation % 360
+
+      this.categories.forEach((cat, index) => {
+        if (this.didCrossAngle(previousNormalized, currentNormalized, cat.arrowAngle)) {
+          this.activeIndex = index
+          this.centerDisplayMode = 'category'
+          this.$emit('category-change', {
+            category: cat,
+            index,
+            previousIndex: this.activeIndex
+          })
+
+          if (this.logoTimer !== null) {
+            clearTimeout(this.logoTimer)
+          }
+          this.logoTimer = window.setTimeout(() => {
+            if (!this.isJumping) {
+              this.centerDisplayMode = 'logo'
+            }
+          }, CATEGORY_DISPLAY_DURATION)
+        }
+      })
+
+      this.previousArrowRotation = this.arrowRotation
+    },
+
     calculateRotationSteps(currentRotation: number): number {
       return Math.floor(currentRotation / 360)
     },
@@ -360,39 +406,71 @@ export default Vue.extend({
       this.jumpToCategory(index)
     },
 
-    jumpToCategory(index: number): void {
-      if (index === this.activeIndex) return
+    jumpToCategory(targetIndex: number): void {
+      if (targetIndex === this.activeIndex) return
 
+      // Stop carousel
       this.isJumping = true
-      this.clearCarouselTimers()
-
-      if (!this.isMobile) {
-        this.centerDisplayMode = 'category'
+      if (this.animationFrameId !== null) {
+        cancelAnimationFrame(this.animationFrameId)
+        this.animationFrameId = null
+      }
+      if (this.logoTimer !== null) {
+        clearTimeout(this.logoTimer)
+        this.logoTimer = null
       }
 
-      const targetAngle = this.categories[index].arrowAngle
-      const currentBaseAngle = this.categories[this.activeIndex].arrowAngle
-      this.currentRotation = this.normalizeRotationTarget(
-        this.currentRotation,
-        currentBaseAngle,
+      // Calculate route
+      const currentAngle = this.arrowRotation % 360
+      const targetAngle = this.categories[targetIndex].arrowAngle
+      const targetRotation = this.normalizeRotationTarget(
+        this.arrowRotation,
+        currentAngle,
         targetAngle
       )
 
+      // Animate with easing
+      const jumpStartTime = performance.now()
+      const jumpStartRotation = this.arrowRotation
+      const jumpDistance = targetRotation - jumpStartRotation
       const previousIndex = this.activeIndex
-      this.activeIndex = index
-      this.$emit('category-change', {
-        category: this.categories[index],
-        index,
-        previousIndex
-      })
 
-      window.setTimeout(() => {
-        if (this.isMobile) {
-          this.isJumping = false
+      const animateJump = (timestamp: number) => {
+        const elapsed = timestamp - jumpStartTime
+        const progress = Math.min(elapsed / JUMP_DURATION, 1)
+
+        // Cubic easing (Material Design)
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2
+
+        this.arrowRotation = jumpStartRotation + (jumpDistance * eased)
+
+        if (progress >= 1) {
+          // CRITICAL: Change activeIndex ONLY when arrow arrives
+          this.arrowRotation = targetRotation
+          this.activeIndex = targetIndex
+          this.centerDisplayMode = this.isMobile ? 'logo' : 'category'
+          this.$emit('category-change', {
+            category: this.categories[targetIndex],
+            index: targetIndex,
+            previousIndex
+          })
+
+          // Desktop: resume carousel, Mobile: stay static
+          if (!this.isMobile) {
+            setTimeout(() => {
+              this.startCarouselAnimation(targetIndex)
+            }, 100)
+          } else {
+            this.isJumping = true
+          }
         } else {
-          this.startCarousel(index)
+          this.animationFrameId = requestAnimationFrame(animateJump)
         }
-      }, 600)
+      }
+
+      this.animationFrameId = requestAnimationFrame(animateJump)
     },
 
     handleKeyDown(event: KeyboardEvent): void {
@@ -455,75 +533,53 @@ export default Vue.extend({
         this.windowWidth = window.innerWidth
 
         if ((prev <= 767) !== (this.windowWidth <= 767)) {
-          this.clearCarouselTimers()
-          this.windowWidth > 767
-            ? this.startCarousel(this.activeIndex)
-            : (this.centerDisplayMode = 'logo', this.isJumping = true)
+          if (this.animationFrameId !== null) {
+            cancelAnimationFrame(this.animationFrameId)
+            this.animationFrameId = null
+          }
+          if (this.logoTimer !== null) {
+            clearTimeout(this.logoTimer)
+            this.logoTimer = null
+          }
+
+          if (this.windowWidth > 767) {
+            this.startCarouselAnimation(this.activeIndex)
+          } else {
+            this.centerDisplayMode = 'logo'
+            this.isJumping = true
+          }
         }
       }, 150)
     },
 
-    startCarousel(startFromIndex = 0): void {
+    startCarouselAnimation(startIndex: number): void {
       if (this.isMobile) {
         this.centerDisplayMode = 'logo'
-        this.activeIndex = startFromIndex
+        this.activeIndex = startIndex
         this.isJumping = true
         return
       }
 
-      this.clearCarouselTimers()
-      this.carouselStartTime = Date.now()
-      this.activeIndex = startFromIndex
-      this.centerDisplayMode = 'category'
       this.isJumping = false
+      this.activeIndex = startIndex
+      this.arrowRotation = this.categories[startIndex].arrowAngle
+      this.previousArrowRotation = this.arrowRotation
+      this.carouselStartTime = performance.now()
+      this.centerDisplayMode = 'category'
 
-      this.scheduleContentSwitches(startFromIndex)
-    },
+      const animate = (timestamp: number) => {
+        if (this.isJumping) return  // User clicked - stop
 
-    scheduleContentSwitches(startIndex = 0): void {
-      this.clearCarouselTimers()
+        const elapsed = timestamp - this.carouselStartTime
+        const progress = (elapsed % CAROUSEL_DURATION) / CAROUSEL_DURATION
+        this.arrowRotation = 315 + (progress * 360)
 
-      const CATEGORY_DURATION = 4000
-      const LOGO_DURATION = 3000
-      const SEGMENT_DURATION = CATEGORY_DURATION + LOGO_DURATION
+        this.updateActiveCategoryBasedOnArrow()
 
-      for (let i = 0; i < 4; i++) {
-        const categoryIndex = (startIndex + i) % 4
-        const segmentStart = i * SEGMENT_DURATION
-
-        this.carouselTimers.push(
-          window.setTimeout(() => {
-            if (!this.isJumping) {
-              this.activeIndex = categoryIndex
-              this.centerDisplayMode = 'category'
-              this.$emit('category-change', {
-                category: this.categories[categoryIndex],
-                index: categoryIndex,
-                previousIndex: this.activeIndex
-              })
-            }
-          }, segmentStart)
-        )
-
-        this.carouselTimers.push(
-          window.setTimeout(() => {
-            if (!this.isJumping) {
-              this.centerDisplayMode = 'logo'
-            }
-          }, segmentStart + CATEGORY_DURATION)
-        )
+        this.animationFrameId = requestAnimationFrame(animate)
       }
 
-      this.carouselTimers.push(
-        window.setTimeout(() => {
-          this.scheduleContentSwitches(startIndex)
-        }, 4 * SEGMENT_DURATION)
-      )
-    },
-
-    clearCarouselTimers(): void {
-      this.carouselTimers.forEach(id => window.clearTimeout(id))
-      this.carouselTimers = []
+      this.animationFrameId = requestAnimationFrame(animate)
     },
 
     handleVisibilityChange(): void {
@@ -532,10 +588,18 @@ export default Vue.extend({
       if (prefersReducedMotion) return
 
       if (document.hidden) {
-        this.clearCarouselTimers()
+        if (this.animationFrameId !== null) {
+          cancelAnimationFrame(this.animationFrameId)
+          this.animationFrameId = null
+        }
+        if (this.logoTimer !== null) {
+          clearTimeout(this.logoTimer)
+          this.logoTimer = null
+        }
         this.isJumping = true
       } else {
-        this.startCarousel(this.activeIndex)
+        this.carouselStartTime = performance.now()
+        this.startCarouselAnimation(this.activeIndex)
       }
     }
   }

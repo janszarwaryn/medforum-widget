@@ -41,10 +41,12 @@ export interface RotatingWheelData {
   wheelCenter: Point
   arrowTransformOrigin: string
   arrowPathSegments: ReadonlyArray<ArrowPathSegment>
-  currentRotation: number
-  centerDisplayMode: CenterDisplayMode
-  carouselTimers: number[]
+  arrowRotation: number
+  previousArrowRotation: number
+  animationFrameId: number | null
   carouselStartTime: number
+  logoTimer: number | null
+  centerDisplayMode: CenterDisplayMode
   isJumping: boolean
   windowWidth: number
   resizeTimeout: number | null
