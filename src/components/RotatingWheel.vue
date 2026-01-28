@@ -66,7 +66,7 @@
             />
           </g>
 
-          
+
           <circle
             :cx="wheelCenter.x"
             :cy="wheelCenter.y"
@@ -219,7 +219,7 @@ import { fetchCategories } from '../services/categories'
 export default Vue.extend({
   name: 'RotatingWheel',
 
-  data(): RotatingWheelData {
+  data(): RotatingWheelData & { WHEEL_CONFIG: typeof WHEEL_CONFIG; ARROW_CONFIG: typeof ARROW_CONFIG; UI_CONFIG: typeof UI_CONFIG } {
     return {
       activeIndex: 0,
       categories: [] as ReadonlyArray<WheelCategory>,
@@ -227,7 +227,6 @@ export default Vue.extend({
         x: WHEEL_CONFIG.centerX,
         y: WHEEL_CONFIG.centerY
       },
-      arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
       arrowRotation: 315,
       previousArrowRotation: 315,
       animationFrameId: null as number | null,
@@ -238,7 +237,10 @@ export default Vue.extend({
       windowWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
       resizeTimeout: null as number | null,
       isLoading: true,
-      errorMessage: null as string | null
+      errorMessage: null as string | null,
+      WHEEL_CONFIG,
+      ARROW_CONFIG,
+      UI_CONFIG
     }
   },
 
@@ -298,19 +300,7 @@ export default Vue.extend({
     },
 
     isMobile(): boolean {
-      return this.windowWidth <= 767
-    },
-
-    WHEEL_CONFIG() {
-      return WHEEL_CONFIG
-    },
-
-    ARROW_CONFIG() {
-      return ARROW_CONFIG
-    },
-
-    UI_CONFIG() {
-      return UI_CONFIG
+      return this.windowWidth < 768
     }
   },
 
@@ -345,7 +335,9 @@ export default Vue.extend({
         img.loading = index === 0 ? 'eager' : 'lazy'
         img.decoding = 'async'
         img.src = cat.personImage
-        img.onerror = () => {}
+        img.onerror = () => {
+          console.warn(`Failed to preload image: ${cat.personImage}`)
+        }
       })
 
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -564,12 +556,12 @@ export default Vue.extend({
     },
 
     selectNext(): void {
-      const nextIndex = (this.activeIndex + 1) % 4
+      const nextIndex = (this.activeIndex + 1) % this.categories.length
       this.jumpToCategory(nextIndex)
     },
 
     selectPrevious(): void {
-      const prevIndex = (this.activeIndex - 1 + 4) % 4
+      const prevIndex = (this.activeIndex - 1 + this.categories.length) % this.categories.length
       this.jumpToCategory(prevIndex)
     },
 
@@ -607,7 +599,7 @@ export default Vue.extend({
         const prev = this.windowWidth
         this.windowWidth = window.innerWidth
 
-        if ((prev <= 767) !== (this.windowWidth <= 767)) {
+        if ((prev < 768) !== (this.windowWidth < 768)) {
           if (this.animationFrameId !== null) {
             cancelAnimationFrame(this.animationFrameId)
             this.animationFrameId = null

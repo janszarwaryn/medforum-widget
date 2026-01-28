@@ -48,7 +48,7 @@ $easing-smooth: cubic-bezier(0.4, 0, 0.2, 1) !default;
 
 $breakpoint-mobile: 768px !default;
 $breakpoint-tablet: 1024px !default;
-$breakpoint-desktop: 1000px !default;
+$breakpoint-desktop: 1024px !default;
 
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12) !default;
 $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
@@ -208,6 +208,11 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
       opacity: 0.85;
     }
 
+    &:focus-visible {
+      outline: 2px solid #000;
+      outline-offset: 2px;
+    }
+
     &--active {
       opacity: 1;
     }
@@ -220,6 +225,11 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   &__orbit-dot {
     cursor: pointer;
     transition: fill 300ms $easing-smooth;
+
+    &:focus-visible {
+      outline: 2px solid #000;
+      outline-offset: 2px;
+    }
   }
 
   &__arrow-indicator {
@@ -242,9 +252,9 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
       fill: $color-text-secondary;
     }
 
-    &:focus,
     &:focus-visible {
-      outline: none;
+      outline: 2px solid color-segment('marketing');
+      outline-offset: 4px;
     }
 
     &--active {

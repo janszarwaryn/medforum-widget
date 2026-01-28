@@ -1,7 +1,8 @@
-import type { WheelCategory } from '../types/rotating-wheel'
+import type { WheelCategory, SegmentAngle, ArrowAngle, CategoryId, HexColor } from '../types/rotating-wheel'
 
 interface ApiCategory {
-  readonly name: string
+  readonly name: string        // English ID: 'communication', 'marketing', 'sales', 'strategy'
+  readonly label: string       // Localized display text: 'Komunikacja', 'Marketing', etc.
   readonly color: string
   readonly description: string
   readonly image: string
@@ -14,6 +15,46 @@ interface ApiResponse {
 const API_URL = import.meta.env.DEV
   ? 'http://localhost:8000/index.php'
   : '/api/index.php'
+
+// Type assertion helpers with runtime validation
+function assertSegmentAngle(angle: number): SegmentAngle {
+  const valid: number[] = [270, 0, 90, 180]
+  if (!valid.includes(angle)) {
+    throw new Error(`Invalid segment angle: ${angle}. Expected one of: ${valid.join(', ')}`)
+  }
+  return angle as SegmentAngle
+}
+
+function assertArrowAngle(angle: number): ArrowAngle {
+  const valid: number[] = [315, 45, 135, 225]
+  if (!valid.includes(angle)) {
+    throw new Error(`Invalid arrow angle: ${angle}. Expected one of: ${valid.join(', ')}`)
+  }
+  return angle as ArrowAngle
+}
+
+function assertCategoryId(id: string): CategoryId {
+  const valid: string[] = ['communication', 'marketing', 'sales', 'strategy']
+  if (!valid.includes(id)) {
+    throw new Error(`Invalid category ID: ${id}. Expected one of: ${valid.join(', ')}`)
+  }
+  return id as CategoryId
+}
+
+function assertHexColor(color: string): HexColor {
+  if (!color.startsWith('#')) {
+    throw new Error(`Invalid hex color: ${color}. Must start with #`)
+  }
+  return color as HexColor
+}
+
+function assertPersonImage(image: string): WheelCategory['personImage'] {
+  const validPattern = /^\/images\/person[1-4]\.(png|svg)$/
+  if (!validPattern.test(image)) {
+    throw new Error(`Invalid person image path: ${image}. Expected /images/person[1-4].(png|svg)`)
+  }
+  return image as WheelCategory['personImage']
+}
 
 export async function fetchCategories(): Promise<ReadonlyArray<WheelCategory>> {
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -64,13 +105,13 @@ function transformCategory(cat: ApiCategory, index: number): WheelCategory {
   const arrowAngle = (315 + (index * degreesPerSegment)) % 360
 
   return {
-    id: cat.name.toLowerCase().replace(/[^a-z]/g, '') as any,
-    label: cat.name,
-    color: cat.color as `#${string}`,
-    segmentStartAngle: segmentStartAngle as any,
-    arrowAngle: arrowAngle as any,
-    personImage: cat.image as any,
-    title: cat.name,
+    id: assertCategoryId(cat.name),           // name is English ID from API
+    label: cat.label,                         // label is localized text from API
+    color: assertHexColor(cat.color),
+    segmentStartAngle: assertSegmentAngle(segmentStartAngle),
+    arrowAngle: assertArrowAngle(arrowAngle),
+    personImage: assertPersonImage(cat.image),
+    title: cat.label,                         // Use localized label for title
     description: cat.description
   }
 }

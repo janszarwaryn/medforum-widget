@@ -37,7 +37,6 @@ export interface RotatingWheelData {
   categories: ReadonlyArray<WheelCategory>
   activeIndex: number
   wheelCenter: Point
-  arrowTransformOrigin: string
   arrowRotation: number
   previousArrowRotation: number
   animationFrameId: number | null
