@@ -31,8 +31,8 @@ COPY --from=builder /app/dist ./dist
 # Consider optimizing images before deployment if size is a concern
 COPY --from=builder /app/public/images ./images
 
-# Copy demo page (index.html loads the widget)
-COPY --from=builder /app/index.html ./index.html
+# Copy demo page (loads pre-built /dist/ files)
+COPY --from=builder /app/public/index.html ./index.html
 
 # Copy PHP API (pure PHP 8, no Composer needed)
 COPY api ./api

@@ -20,7 +20,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "full": "concurrently \"php -S localhost:8000 -t api\" \"vite\" --names \"API,VITE\" --prefix-colors \"blue,green\"",
+    "full": "concurrently \"node api/server.cjs\" \"vite\" --names \"API,VITE\" --prefix-colors \"blue,green\"",
     "dev": "npm run full",
     "frontend": "vite",
     "backend": "php -S localhost:8000 -t api",
