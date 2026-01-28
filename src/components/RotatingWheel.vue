@@ -298,7 +298,7 @@ export default Vue.extend({
       img.loading = index === 0 ? 'eager' : 'lazy'
       img.decoding = 'async'
       img.src = cat.personImage
-      img.onerror = () => console.error(`Failed to load: ${cat.personImage}`)
+      img.onerror = () => {}
     })
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
