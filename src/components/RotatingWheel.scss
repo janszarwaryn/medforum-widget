@@ -1,0 +1,363 @@
+@use 'sass:map';
+@use 'sass:math';
+
+$rotating-wheel-color-communication: #2d9f37b2 !default;
+$rotating-wheel-color-marketing: #1790c9cc !default;
+$rotating-wheel-color-sales: #f3aa21cf !default;
+$rotating-wheel-color-strategy: #f58220 !default;
+
+$colors-segments: (
+  'communication': $rotating-wheel-color-communication,
+  'marketing': $rotating-wheel-color-marketing,
+  'sales': $rotating-wheel-color-sales,
+  'strategy': $rotating-wheel-color-strategy
+) !default;
+
+$color-text-primary: #1a1a1a !default;
+$color-text-secondary: #666 !default;
+$color-text-inactive: #999 !default;
+$color-white: #fff !default;
+$color-border: #e0e0e0 !default;
+
+$font-family-base: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif !default;
+
+$font-size-title: 52px !default;
+$font-size-subtitle: 32px !default;
+$font-size-body: 15px !default;
+$font-size-label: 18px !default;
+$font-size-label-active: 20px !default;
+
+$font-weight-regular: 400 !default;
+$font-weight-semibold: 600 !default;
+$font-weight-bold: 700 !default;
+
+$letter-spacing-tight: -1px !default;
+
+$rotating-wheel-animation-duration: 600ms !default;
+
+$_wheel-size: 640px;
+$_outer-radius: 200px;
+$_inner-radius: 140px;
+$_center-x: math.div($_wheel-size, 2);
+$_center-y: math.div($_wheel-size, 2);
+
+$duration-arrow: 600ms !default;
+$duration-text: 300ms !default;
+$duration-image: 400ms !default;
+$easing-smooth: cubic-bezier(0.4, 0, 0.2, 1) !default;
+
+$breakpoint-mobile: 768px !default;
+$breakpoint-tablet: 1024px !default;
+
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12) !default;
+$shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
+
+@function color-segment($name) {
+  @return map.get($colors-segments, $name);
+}
+
+@mixin transition-transform($duration: $rotating-wheel-animation-duration) {
+  transition: transform $duration $easing-smooth;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    will-change: auto;
+  }
+}
+
+@mixin transition-opacity($duration: $duration-text) {
+  transition: opacity $duration $easing-smooth;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin focus-outline {
+  outline: 2px solid color-segment('marketing');
+  outline-offset: 4px;
+}
+
+.rotating-wheel {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  font-family: $font-family-base;
+  background-color: #F7F7F9;
+
+  &__pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 350px;
+    height: 350px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.8;
+  }
+
+  &__title {
+    position: relative;
+    z-index: 1;
+    font-size: $font-size-title;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    text-align: center;
+    margin-bottom: 0;
+    letter-spacing: $letter-spacing-tight;
+    line-height: 1.2;
+
+    @media (max-width: $breakpoint-mobile) {
+      font-size: 36px;
+    }
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 0.6fr 1.4fr;
+    gap: 25px;
+    align-items: center;
+    margin-bottom: 0;
+
+    @media (max-width: $breakpoint-tablet) {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+  }
+
+  &__persona {
+    position: relative;
+    min-height: 480px;
+    overflow: visible;
+  }
+
+  &__persona-image {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scale(1.2);
+    width: 100%;
+    height: 100%;
+    max-height: 480px;
+    display: block;
+    object-fit: contain;
+    object-position: center bottom;
+    z-index: 1;
+  }
+
+  &__wheel-container {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    z-index: 10;
+  }
+
+  &__svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+
+  &__segment {
+    cursor: pointer;
+    stroke: #ffffff;
+    stroke-width: 5;
+    transition: opacity 200ms ease;
+
+    &:hover:not(&--active) {
+      opacity: 0.85;
+    }
+
+    &--active {
+      opacity: 1;
+    }
+  }
+
+  &__orbit {
+    pointer-events: none;
+  }
+
+  &__orbit-dot {
+    cursor: pointer;
+    transition: fill 300ms $easing-smooth;
+  }
+
+  &__arrow-indicator {
+    will-change: transform;
+    pointer-events: none;
+    transform-origin: 320px 320px;
+  }
+
+  &__arrow-indicator--carousel {
+    animation: rotate-carousel 28s linear infinite;
+    transform: rotate(315deg);
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &__arrow-indicator--jumping {
+    transition: transform 600ms $easing-smooth;
+    animation: none;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  @keyframes rotate-carousel {
+    from {
+      transform: rotate(315deg);
+    }
+    to {
+      transform: rotate(675deg);
+    }
+  }
+
+  &__arrow-path {
+  }
+
+  &__label {
+    font-size: $font-size-label;
+    font-weight: $font-weight-semibold;
+    fill: $color-text-inactive;
+    cursor: pointer;
+    @include transition-opacity(200ms);
+    user-select: none;
+    position: relative;
+    z-index: 30;
+
+    &:hover {
+      fill: $color-text-secondary;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    &--active {
+      font-size: $font-size-label-active;
+      font-weight: $font-weight-bold;
+      fill: $color-text-primary;
+    }
+  }
+
+  &__center-content {
+    @include absolute-center;
+    width: 280px;
+    max-height: 280px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__center-inner {
+    width: 100%;
+    max-height: 100%;
+    overflow: visible;
+  }
+
+  &__center-title {
+    font-size: 28px;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    margin: 0 0 12px 0;
+    line-height: 1.2;
+  }
+
+  &__center-description {
+    font-size: 13px;
+    font-weight: $font-weight-regular;
+    color: $color-text-secondary;
+    line-height: 1.5;
+    margin: 0;
+    word-wrap: break-word;
+  }
+
+  &__center-logo {
+    max-width: 200px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+
+    @media (max-width: $breakpoint-mobile) {
+      max-width: 150px;
+      max-height: 150px;
+    }
+  }
+
+  &__cta {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  &__cta-text {
+    display: inline-block;
+    font-size: 18px;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    cursor: pointer;
+    transition: color 200ms ease, text-decoration-color 200ms ease;
+
+    &:hover {
+      color: color-segment('marketing');
+      text-decoration-color: color-segment('marketing');
+    }
+  }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity $duration-image $easing-smooth;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
+
+.fade-text-enter-active, .fade-text-leave-active {
+  transition: opacity $duration-text $easing-smooth;
+}
+.fade-text-enter, .fade-text-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotating-wheel {
+    &__segment,
+    &__orbit-dot,
+    &__label {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  .fade-enter-active,
+  .fade-leave-active,
+  .fade-text-enter-active,
+  .fade-text-leave-active {
+    transition: none !important;
+  }
+}

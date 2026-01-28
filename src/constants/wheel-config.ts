@@ -58,7 +58,6 @@ export const ARROW_CONFIG = Object.freeze({
   arcSpanDegrees: 55,
   strokeWidth: 1.5,
   startOffsetDegrees: -60,
-  endOffsetDegrees: -20,
   segmentCount: 10,
   opacityStops: Object.freeze([0.05, 0.15, 0.27, 0.40, 0.53, 0.65, 0.75, 0.84, 0.92, 1.0])
 })

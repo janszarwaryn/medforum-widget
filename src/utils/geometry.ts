@@ -1,9 +1,7 @@
 import type { Point } from '../types/rotating-wheel'
 
-
 const SVG_ROTATION_OFFSET = 90
 const SVG_COORDINATE_PRECISION = 2
-
 
 export function polarToCartesian(
   center: Point,
@@ -17,11 +15,9 @@ export function polarToCartesian(
   }
 }
 
-
 function formatPoint(p: Point): string {
   return `${p.x.toFixed(SVG_COORDINATE_PRECISION)} ${p.y.toFixed(SVG_COORDINATE_PRECISION)}`
 }
-
 
 function formatArc(
   radius: number,
@@ -31,7 +27,6 @@ function formatArc(
 ): string {
   return `A ${radius} ${radius} 0 ${+largeArc} ${+sweep} ${formatPoint(end)}`
 }
-
 
 export function generateDonutSegment(config: {
   center: Point
@@ -43,13 +38,11 @@ export function generateDonutSegment(config: {
   const { center, outerRadius, innerRadius, startAngle, arcSize = 90 } = config
   const endAngle = startAngle + arcSize
 
-  // Calculate arc points using improved API
   const outerStart = polarToCartesian(center, outerRadius, startAngle)
   const outerEnd = polarToCartesian(center, outerRadius, endAngle)
   const innerStart = polarToCartesian(center, innerRadius, endAngle)
   const innerEnd = polarToCartesian(center, innerRadius, startAngle)
 
-  // Build SVG path with helper functions (DRY!)
   const largeArc = arcSize > 180
 
   return [
@@ -60,21 +53,6 @@ export function generateDonutSegment(config: {
     'Z'
   ].join(' ')
 }
-
-
-export function generateCurvedArrow(
-  center: Point,
-  angle: number,
-  startRadius: number,
-  endRadius: number
-): string {
-  const start = polarToCartesian(center, startRadius, angle)
-  const end = polarToCartesian(center, endRadius, angle)
-  const control = polarToCartesian(center, (startRadius + endRadius) / 2, angle)
-
-  return `M ${formatPoint(start)} Q ${formatPoint(control)} ${formatPoint(end)}`
-}
-
 
 export function generateArrowArc(config: {
   center: Point
@@ -87,7 +65,6 @@ export function generateArrowArc(config: {
   const start = polarToCartesian(center, radius, startAngle)
   const end = polarToCartesian(center, radius, endAngle)
 
-  // Small arc (< 180°), clockwise sweep
   const arcSize = Math.abs(endAngle - startAngle)
   const largeArc = arcSize > 180
 
