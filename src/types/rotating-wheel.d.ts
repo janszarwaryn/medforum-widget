@@ -34,13 +34,10 @@ export interface ArrowConfig {
 }
 
 export interface RotatingWheelData {
-  readonly categories: ReadonlyArray<WheelCategory>
+  categories: ReadonlyArray<WheelCategory>
   activeIndex: number
-  segmentPaths: string[]
-  labelPositions: Array<{ x: number; y: number; anchor: string }>
   wheelCenter: Point
   arrowTransformOrigin: string
-  arrowPathSegments: ReadonlyArray<ArrowPathSegment>
   arrowRotation: number
   previousArrowRotation: number
   animationFrameId: number | null
@@ -50,6 +47,8 @@ export interface RotatingWheelData {
   isJumping: boolean
   windowWidth: number
   resizeTimeout: number | null
+  isLoading: boolean
+  errorMessage: string | null
 }
 
 export interface WheelConfig {

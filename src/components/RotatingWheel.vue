@@ -11,10 +11,28 @@
       Wsparcie i obsługa organizacji 360°
     </h2>
 
-    <div class="rotating-wheel__content">
+    <!-- Loading State -->
+    <div v-if="isLoading" class="rotating-wheel__loading">
+      <div class="rotating-wheel__spinner"></div>
+      <p>Ładowanie danych...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="errorMessage" class="rotating-wheel__error">
+      <div class="rotating-wheel__error-icon">&#9888;</div>
+      <h3>Błąd ładowania</h3>
+      <p>{{ errorMessage }}</p>
+      <button @click="reloadData" class="rotating-wheel__retry-button">
+        Spróbuj ponownie
+      </button>
+    </div>
+
+    <!-- Main Content -->
+    <div v-else-if="hasCategories" class="rotating-wheel__content">
       <div class="rotating-wheel__persona">
         <transition name="fade" mode="out-in">
           <img
+            v-if="activeCategory"
             :key="activeCategory.id"
             :src="activeCategory.personImage"
             :alt="`Przedstawiciel ${activeCategory.label} - profesjonalna obsługa`"
@@ -146,7 +164,7 @@
              aria-live="polite"
              :aria-label="isMobile ? 'Logo Medforum' : 'Informacje o kategorii'">
           <transition name="fade-text" mode="out-in">
-            <div v-if="!isMobile && centerDisplayMode === 'category'"
+            <div v-if="!isMobile && centerDisplayMode === 'category' && activeCategory"
                  :key="`category-${activeCategory.id}`"
                  class="rotating-wheel__center-inner">
               <h3 class="rotating-wheel__center-title">
@@ -168,7 +186,7 @@
       </div>
 
       <transition name="fade-text" mode="out-in">
-        <div v-if="isMobile"
+        <div v-if="isMobile && activeCategory"
              :key="activeCategory.id"
              class="rotating-wheel__below-wheel-text"
              role="region"
@@ -194,9 +212,10 @@
 <script lang="ts">
 import Vue from 'vue'
 import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment, CenterDisplayMode } from '../types/rotating-wheel'
-import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG, CAROUSEL_DURATION, CATEGORY_DISPLAY_DURATION, JUMP_DURATION } from '../constants/wheel-config'
+import { WHEEL_CONFIG, ARROW_CONFIG, CAROUSEL_DURATION, CATEGORY_DISPLAY_DURATION, JUMP_DURATION } from '../constants/wheel-config'
 import { UI_CONFIG } from '../constants/ui-config'
 import { polarToCartesian, generateDonutSegment, generateArrowArc } from '../utils/geometry'
+import { fetchCategories } from '../services/categories'
 
 export default Vue.extend({
   name: 'RotatingWheel',
@@ -204,15 +223,12 @@ export default Vue.extend({
   data(): RotatingWheelData {
     return {
       activeIndex: 0,
-      categories: DEFAULT_CATEGORIES,
-      segmentPaths: [],
-      labelPositions: [],
+      categories: [] as ReadonlyArray<WheelCategory>,
       wheelCenter: {
         x: WHEEL_CONFIG.centerX,
         y: WHEEL_CONFIG.centerY
       },
       arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
-      arrowPathSegments: [],
       arrowRotation: 315,
       previousArrowRotation: 315,
       animationFrameId: null as number | null,
@@ -221,13 +237,19 @@ export default Vue.extend({
       centerDisplayMode: 'category' as CenterDisplayMode,
       isJumping: false,
       windowWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
-      resizeTimeout: null as number | null
+      resizeTimeout: null as number | null,
+      isLoading: true,
+      errorMessage: null as string | null
     }
   },
 
   computed: {
-    activeCategory(): WheelCategory {
-      return this.categories[this.activeIndex]
+    activeCategory(): WheelCategory | null {
+      return this.categories[this.activeIndex] || null
+    },
+
+    hasCategories(): boolean {
+      return this.categories.length > 0
     },
 
     indicatorPositions(): Array<Point> {
@@ -238,6 +260,42 @@ export default Vue.extend({
           cat.arrowAngle
         )
       )
+    },
+
+    segmentPaths(): string[] {
+      return this.categories.map(cat =>
+        generateDonutSegment({
+          center: this.wheelCenter,
+          outerRadius: WHEEL_CONFIG.outerRadius,
+          innerRadius: WHEEL_CONFIG.innerRadius,
+          startAngle: cat.segmentStartAngle
+        })
+      )
+    },
+
+    labelPositions(): Array<{ x: number; y: number; anchor: string }> {
+      return this.categories.map(cat =>
+        this.calculateLabelPosition(cat.arrowAngle)
+      )
+    },
+
+    arrowPathSegments(): ReadonlyArray<ArrowPathSegment> {
+      const segmentSize = ARROW_CONFIG.arcSpanDegrees / ARROW_CONFIG.segmentCount
+
+      return ARROW_CONFIG.opacityStops.map((opacity, idx) => {
+        const startAngle = ARROW_CONFIG.startOffsetDegrees + (idx * segmentSize)
+        const endAngle = startAngle + segmentSize
+
+        return Object.freeze({
+          path: generateArrowArc({
+            center: this.wheelCenter,
+            radius: WHEEL_CONFIG.indicatorRadius,
+            startAngle,
+            endAngle
+          }),
+          opacity
+        })
+      })
     },
 
     isMobile(): boolean {
@@ -258,61 +316,56 @@ export default Vue.extend({
   },
 
   created(): void {
-    this.segmentPaths = this.categories.map(cat =>
-      generateDonutSegment({
-        center: this.wheelCenter,
-        outerRadius: WHEEL_CONFIG.outerRadius,
-        innerRadius: WHEEL_CONFIG.innerRadius,
-        startAngle: cat.segmentStartAngle
+    this.isLoading = true
+    this.errorMessage = null
+
+    fetchCategories()
+      .then(categories => {
+        this.categories = categories
+        this.isLoading = false
       })
-    )
-
-    this.labelPositions = this.categories.map(cat =>
-      this.calculateLabelPosition(cat.arrowAngle)
-    )
-
-    const segmentSize = ARROW_CONFIG.arcSpanDegrees / ARROW_CONFIG.segmentCount
-
-    this.arrowPathSegments = ARROW_CONFIG.opacityStops.map((opacity, idx) => {
-      const startAngle = ARROW_CONFIG.startOffsetDegrees + (idx * segmentSize)
-      const endAngle = startAngle + segmentSize
-
-      return Object.freeze({
-        path: generateArrowArc({
-          center: this.wheelCenter,
-          radius: WHEEL_CONFIG.indicatorRadius,
-          startAngle,
-          endAngle
-        }),
-        opacity
+      .catch(error => {
+        console.error('Błąd ładowania kategorii:', error)
+        this.errorMessage = error.message || 'Nie udało się załadować danych z serwera'
+        this.isLoading = false
       })
-    })
   },
 
   mounted(): void {
     this.windowWidth = window.innerWidth
     window.addEventListener('resize', this.handleResize)
-
-    this.categories.forEach((cat, index) => {
-      const img = new Image()
-      img.loading = index === 0 ? 'eager' : 'lazy'
-      img.decoding = 'async'
-      img.src = cat.personImage
-      img.onerror = () => {}
-    })
-
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    if (!prefersReducedMotion) {
-      this.startCarouselAnimation(0)
-    } else {
-      this.activeIndex = 0
-      this.arrowRotation = this.categories[0].arrowAngle
-      this.centerDisplayMode = 'category'
-    }
-
     document.addEventListener('visibilitychange', this.handleVisibilityChange)
     document.addEventListener('keydown', this.handleKeyDown)
+
+    // Wait for categories to load before initializing
+    const initWheel = () => {
+      if (this.categories.length === 0) return
+
+      this.categories.forEach((cat, index) => {
+        const img = new Image()
+        img.loading = index === 0 ? 'eager' : 'lazy'
+        img.decoding = 'async'
+        img.src = cat.personImage
+        img.onerror = () => {}
+      })
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      if (!prefersReducedMotion) {
+        this.startCarouselAnimation(0)
+      } else {
+        this.activeIndex = 0
+        this.arrowRotation = this.categories[0].arrowAngle
+        this.centerDisplayMode = 'category'
+      }
+    }
+
+    // Initialize once categories are loaded
+    this.$watch('categories', () => {
+      if (this.categories.length > 0) {
+        this.$nextTick(() => initWheel())
+      }
+    }, { immediate: true })
   },
 
   beforeDestroy(): void {
@@ -334,6 +387,29 @@ export default Vue.extend({
   },
 
   methods: {
+    reloadData(): void {
+      this.isLoading = true
+      this.errorMessage = null
+      this.categories = []
+
+      fetchCategories()
+        .then(categories => {
+          this.categories = categories
+          this.isLoading = false
+
+          // Restart animation after successful reload
+          const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          if (!prefersReducedMotion && this.categories.length > 0) {
+            this.startCarouselAnimation(0)
+          }
+        })
+        .catch(error => {
+          console.error('Błąd ładowania kategorii:', error)
+          this.errorMessage = error.message || 'Nie udało się załadować danych z serwera'
+          this.isLoading = false
+        })
+    },
+
     didCrossAngle(prevAngle: number, currAngle: number, checkpointAngle: number): boolean {
       // Handle wrap-around (359° → 1°)
       if (prevAngle > 270 && currAngle < 90) {
