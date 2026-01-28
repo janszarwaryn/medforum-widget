@@ -304,11 +304,10 @@ export default Vue.extend({
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     if (!prefersReducedMotion) {
-      this.isMobile
-        ? (this.activeIndex = 0, this.centerDisplayMode = 'logo', this.isJumping = true)
-        : this.startCarouselAnimation(0)
+      this.startCarouselAnimation(0)
     } else {
       this.activeIndex = 0
+      this.arrowRotation = this.categories[0].arrowAngle
       this.centerDisplayMode = 'category'
     }
 
@@ -352,21 +351,26 @@ export default Vue.extend({
       this.categories.forEach((cat, index) => {
         if (this.didCrossAngle(previousNormalized, currentNormalized, cat.arrowAngle)) {
           this.activeIndex = index
-          this.centerDisplayMode = 'category'
           this.$emit('category-change', {
             category: cat,
             index,
             previousIndex: this.activeIndex
           })
 
-          if (this.logoTimer !== null) {
-            clearTimeout(this.logoTimer)
-          }
-          this.logoTimer = window.setTimeout(() => {
-            if (!this.isJumping) {
-              this.centerDisplayMode = 'logo'
+          // On desktop: show category then switch to logo after 4s
+          // On mobile: always show logo (category text is below wheel)
+          if (!this.isMobile) {
+            this.centerDisplayMode = 'category'
+
+            if (this.logoTimer !== null) {
+              clearTimeout(this.logoTimer)
             }
-          }, CATEGORY_DISPLAY_DURATION)
+            this.logoTimer = window.setTimeout(() => {
+              if (!this.isJumping) {
+                this.centerDisplayMode = 'logo'
+              }
+            }, CATEGORY_DISPLAY_DURATION)
+          }
         }
       })
 
@@ -457,14 +461,10 @@ export default Vue.extend({
             previousIndex
           })
 
-          // Desktop: resume carousel, Mobile: stay static
-          if (!this.isMobile) {
-            setTimeout(() => {
-              this.startCarouselAnimation(targetIndex)
-            }, 100)
-          } else {
-            this.isJumping = true
-          }
+          // Resume carousel after brief pause
+          setTimeout(() => {
+            this.startCarouselAnimation(targetIndex)
+          }, 100)
         } else {
           this.animationFrameId = requestAnimationFrame(animateJump)
         }
@@ -542,30 +542,19 @@ export default Vue.extend({
             this.logoTimer = null
           }
 
-          if (this.windowWidth > 767) {
-            this.startCarouselAnimation(this.activeIndex)
-          } else {
-            this.centerDisplayMode = 'logo'
-            this.isJumping = true
-          }
+          // Resume carousel on both mobile and desktop
+          this.startCarouselAnimation(this.activeIndex)
         }
       }, 150)
     },
 
     startCarouselAnimation(startIndex: number): void {
-      if (this.isMobile) {
-        this.centerDisplayMode = 'logo'
-        this.activeIndex = startIndex
-        this.isJumping = true
-        return
-      }
-
       this.isJumping = false
       this.activeIndex = startIndex
       this.arrowRotation = this.categories[startIndex].arrowAngle
       this.previousArrowRotation = this.arrowRotation
       this.carouselStartTime = performance.now()
-      this.centerDisplayMode = 'category'
+      this.centerDisplayMode = this.isMobile ? 'logo' : 'category'
 
       const animate = (timestamp: number) => {
         if (this.isJumping) return  // User clicked - stop

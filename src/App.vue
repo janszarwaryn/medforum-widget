@@ -17,7 +17,7 @@ export default Vue.extend({
   },
   methods: {
     handleCategoryChange(event: any) {
-      console.log('Category changed:', event)
+      // Category changed event
     }
   }
 })
