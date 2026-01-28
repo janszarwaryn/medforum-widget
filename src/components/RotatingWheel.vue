@@ -66,6 +66,51 @@
             class="rotating-wheel__orbit"
           />
 
+          <!-- Arrow indicator pointing to active category -->
+          <g
+            class="rotating-wheel__arrow-indicator"
+            :style="{
+              transform: `rotate(${arrowRotation}deg)`,
+              transformOrigin: `${wheelCenter.x}px ${wheelCenter.y}px`
+            }"
+          >
+            <defs>
+              <!-- Arrowhead marker - open V shape (szpiciasty) -->
+              <marker
+                id="arrow-head-marker"
+                markerWidth="12"
+                markerHeight="12"
+                refX="6"
+                refY="5"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path
+                  d="M 0 1 L 6 5 L 0 9"
+                  stroke="#000000"
+                  stroke-width="1.5"
+                  fill="none"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </marker>
+            </defs>
+
+            <!-- Arrow arc segments with decreasing opacity for smooth fade -->
+            <path
+              v-for="(segment, idx) in arrowPathSegments"
+              :key="`arrow-seg-${idx}`"
+              :d="segment.path"
+              fill="none"
+              stroke="#000000"
+              :stroke-opacity="segment.opacity"
+              :stroke-width="ARROW_CONFIG.strokeWidth"
+              stroke-linecap="round"
+              :marker-end="idx === arrowPathSegments.length - 1 ? 'url(#arrow-head-marker)' : undefined"
+              class="rotating-wheel__arrow-path"
+            />
+          </g>
+
           <!-- Category indicator dots on orbit (4 corners) -->
           <circle
             v-for="(cat, index) in categories"
@@ -135,9 +180,9 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import type { WheelCategory, Point, RotatingWheelData } from '../types/rotating-wheel'
-import { WHEEL_CONFIG, DEFAULT_CATEGORIES } from '../constants/wheel-config'
-import { polarToCartesian, generateDonutSegment } from '../utils/geometry'
+import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment } from '../types/rotating-wheel'
+import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG } from '../constants/wheel-config'
+import { polarToCartesian, generateDonutSegment, generateArrowArc } from '../utils/geometry'
 
 export default Vue.extend({
   name: 'RotatingWheel',
@@ -153,7 +198,9 @@ export default Vue.extend({
         x: WHEEL_CONFIG.centerX,
         y: WHEEL_CONFIG.centerY
       },
-      arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`
+      arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
+      arrowPathSegments: [],
+      currentRotation: 315  // Track accumulated rotation for smooth clockwise animation
     }
   },
 
@@ -173,9 +220,19 @@ export default Vue.extend({
       )
     },
 
+    // Arrow rotation angle (points to active category) - always clockwise
+    arrowRotation(): number {
+      return this.currentRotation
+    },
+
     // Expose WHEEL_CONFIG to template
     WHEEL_CONFIG() {
       return WHEEL_CONFIG
+    },
+
+    // Expose ARROW_CONFIG to template
+    ARROW_CONFIG() {
+      return ARROW_CONFIG
     }
   },
 
@@ -194,6 +251,25 @@ export default Vue.extend({
     this.labelPositions = this.categories.map(cat =>
       this.calculateLabelPosition(cat.arrowAngle)
     )
+
+    // Calculate arrow path segments for smooth fade
+    // Divide 60° arc into 4 segments of 15° each
+    const segmentSize = ARROW_CONFIG.arcSpanDegrees / ARROW_CONFIG.segmentCount
+
+    this.arrowPathSegments = ARROW_CONFIG.opacityStops.map((opacity, idx) => {
+      const startAngle = ARROW_CONFIG.startOffsetDegrees + (idx * segmentSize)
+      const endAngle = startAngle + segmentSize
+
+      return Object.freeze({
+        path: generateArrowArc({
+          center: this.wheelCenter,
+          radius: WHEEL_CONFIG.indicatorRadius,
+          startAngle,
+          endAngle
+        }),
+        opacity
+      })
+    })
   },
 
   mounted(): void {
@@ -219,6 +295,38 @@ export default Vue.extend({
       if (index === this.activeIndex) return
 
       const previousIndex = this.activeIndex
+      const targetAngle = this.categories[index].arrowAngle
+
+      // Normalize rotation to always go clockwise
+      // If target angle is less than current base angle, add 360° to go "the long way"
+      const currentBaseAngle = this.categories[this.activeIndex].arrowAngle
+      let normalizedTarget = targetAngle
+
+      // Calculate the difference
+      const diff = targetAngle - currentBaseAngle
+
+      // If going backwards (negative diff) and it's a large jump (like 315° → 45°)
+      // we want to go forward through 360° instead
+      if (diff < 0 && Math.abs(diff) > 180) {
+        // Going from high angle to low angle - add 360° to target
+        const rotationSteps = Math.floor(this.currentRotation / 360)
+        normalizedTarget = targetAngle + (rotationSteps + 1) * 360
+      } else if (diff > 0 && Math.abs(diff) > 180) {
+        // Going from low angle to high angle backwards - subtract 360°
+        const rotationSteps = Math.floor(this.currentRotation / 360)
+        normalizedTarget = targetAngle + rotationSteps * 360
+      } else {
+        // Normal case - adjust to current rotation level
+        const rotationSteps = Math.floor(this.currentRotation / 360)
+        normalizedTarget = targetAngle + rotationSteps * 360
+
+        // Ensure we're going forward
+        if (normalizedTarget < this.currentRotation) {
+          normalizedTarget += 360
+        }
+      }
+
+      this.currentRotation = normalizedTarget
       this.activeIndex = index
 
       // Emit event for parent components
@@ -528,6 +636,22 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     cursor: pointer;
     transition: fill 300ms $easing-smooth;
     // Brak animacji scale i hover - tylko nakładka na orbitę
+  }
+
+  // ============================================================================
+  // ARROW INDICATOR
+  // ============================================================================
+  &__arrow-indicator {
+    transition: transform $duration-arrow $easing-smooth;
+    pointer-events: none;  // Arrow is decorative, not interactive
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none !important;
+    }
+  }
+
+  &__arrow-path {
+    // Styling handled via template attributes (stroke, stroke-opacity, stroke-width)
   }
 
   // ============================================================================

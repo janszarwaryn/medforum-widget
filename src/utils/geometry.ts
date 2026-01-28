@@ -95,3 +95,27 @@ export function generateCurvedArrow(
 
   return `M ${formatPoint(start)} Q ${formatPoint(control)} ${formatPoint(end)}`
 }
+
+/**
+ * Generate SVG arc path for arrow indicator on orbit circle
+ * PATTERN: Uses config object like generateDonutSegment for consistency
+ * @param config - Arc configuration
+ * @returns SVG path string for arc
+ */
+export function generateArrowArc(config: {
+  center: Point
+  radius: number
+  startAngle: number
+  endAngle: number
+}): string {
+  const { center, radius, startAngle, endAngle } = config
+
+  const start = polarToCartesian(center, radius, startAngle)
+  const end = polarToCartesian(center, radius, endAngle)
+
+  // Small arc (< 180°), clockwise sweep
+  const arcSize = Math.abs(endAngle - startAngle)
+  const largeArc = arcSize > 180
+
+  return `M ${formatPoint(start)} ${formatArc(radius, largeArc, true, end)}`
+}

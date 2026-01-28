@@ -21,6 +21,20 @@ export interface WheelCategory {
   readonly description: string
 }
 
+export interface ArrowPathSegment {
+  readonly path: string
+  readonly opacity: number
+}
+
+export interface ArrowConfig {
+  readonly arcSpanDegrees: number
+  readonly strokeWidth: number
+  readonly startOffsetDegrees: number
+  readonly endOffsetDegrees: number
+  readonly segmentCount: number
+  readonly opacityStops: ReadonlyArray<number>
+}
+
 export interface RotatingWheelData {
   readonly categories: ReadonlyArray<WheelCategory>
   activeIndex: number
@@ -29,6 +43,8 @@ export interface RotatingWheelData {
   labelPositions: Array<{ x: number; y: number; anchor: string }>
   wheelCenter: Point
   arrowTransformOrigin: string
+  arrowPathSegments: ReadonlyArray<ArrowPathSegment>
+  currentRotation: number
 }
 
 // Configuration object for flexibility

@@ -55,3 +55,12 @@ export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
     description: 'Tworzymy kompleksowe strategie marketingowe i komunikacyjne w oparciu o wieloletnie doświadczenie i znajomość rynku medycznego. Każde rozwiązanie dopasowujemy do celów i potrzeb klienta. Bazujemy na analizie danych, trendach i potrzebach grupy docelowej z uwzględnieniem odbiorcy indywidualnego i masowego.'
   })
 ]) as ReadonlyArray<WheelCategory>
+
+export const ARROW_CONFIG = Object.freeze({
+  arcSpanDegrees: 60,        // Total arc length (2/3 of 90° between dots)
+  strokeWidth: 1.5,          // Arrow path thickness (cieńsze linie)
+  startOffsetDegrees: -60,   // Start 60° before dot (counter-clockwise)
+  endOffsetDegrees: -12,     // End wyraźnie przed kropką (12° przed kółkiem)
+  segmentCount: 10,          // Number of segments for smooth fade (więcej = płynniejszy gradient)
+  opacityStops: Object.freeze([0.05, 0.15, 0.27, 0.40, 0.53, 0.65, 0.75, 0.84, 0.92, 1.0])  // Smooth ease-in opacity
+})
