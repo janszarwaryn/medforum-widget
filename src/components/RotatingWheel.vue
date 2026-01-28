@@ -13,19 +13,6 @@
       Wsparcie i obsługa organizacji 360°
     </h2>
 
-    
-    <div class="rotating-wheel__auto-toggle">
-      <label class="rotating-wheel__toggle-label">
-        <input
-          type="checkbox"
-          v-model="autoRotate"
-          class="rotating-wheel__toggle-input"
-        />
-        <span class="rotating-wheel__toggle-slider"></span>
-        <span class="rotating-wheel__toggle-text">automatyczna karuzela ({{ autoRotate ? countdown + 's' : UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS + 's' }})</span>
-      </label>
-    </div>
-
     <div class="rotating-wheel__content">
       
       <div class="rotating-wheel__persona">
@@ -79,13 +66,19 @@
             class="rotating-wheel__orbit"
           />
 
-          
+
           <g
             class="rotating-wheel__arrow-indicator"
-            :style="{
-              transform: `rotate(${arrowRotation}deg)`,
-              transformOrigin: `${wheelCenter.x}px ${wheelCenter.y}px`
+            :class="{
+              'rotating-wheel__arrow-indicator--carousel': !isJumping,
+              'rotating-wheel__arrow-indicator--jumping': isJumping
             }"
+            :style="isJumping ? {
+              transform: `rotate(${currentRotation}deg)`,
+              transformOrigin: `${wheelCenter.x}px ${wheelCenter.y}px`
+            } : {}"
+            role="img"
+            aria-label="Wskaźnik aktywnej kategorii"
           >
             <defs>
               
@@ -162,10 +155,13 @@
           </g>
         </svg>
 
-        
+
         <div class="rotating-wheel__center-content" aria-live="polite">
           <transition name="fade-text" mode="out-in">
-            <div :key="activeCategory.id" class="rotating-wheel__center-inner">
+            <!-- Category content -->
+            <div v-if="centerDisplayMode === 'category'"
+                 :key="`category-${activeCategory.id}`"
+                 class="rotating-wheel__center-inner">
               <h3 class="rotating-wheel__center-title">
                 {{ activeCategory.title }}
               </h3>
@@ -173,6 +169,14 @@
                 {{ activeCategory.description }}
               </p>
             </div>
+
+            <!-- Logo content -->
+            <img v-else
+                 key="logo"
+                 src="/images/medforum-logo.png"
+                 alt="Logo Medforum"
+                 class="rotating-wheel__center-logo"
+                 role="img" />
           </transition>
         </div>
       </div>
@@ -193,7 +197,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment } from '../types/rotating-wheel'
+import type { WheelCategory, Point, RotatingWheelData, ArrowPathSegment, CenterDisplayMode } from '../types/rotating-wheel'
 import { WHEEL_CONFIG, DEFAULT_CATEGORIES, ARROW_CONFIG } from '../constants/wheel-config'
 import { UI_CONFIG } from '../constants/ui-config'
 import { polarToCartesian, generateDonutSegment, generateArrowArc } from '../utils/geometry'
@@ -214,9 +218,10 @@ export default Vue.extend({
       arrowTransformOrigin: `${WHEEL_CONFIG.centerX}px ${WHEEL_CONFIG.centerY}px`,
       arrowPathSegments: [],
       currentRotation: 315,
-      autoRotate: false,
-      autoRotateInterval: null,
-      countdown: UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
+      centerDisplayMode: 'category' as CenterDisplayMode,
+      carouselTimers: [] as number[],
+      carouselStartTime: 0,
+      isJumping: false
     }
   },
 
@@ -236,11 +241,6 @@ export default Vue.extend({
       )
     },
 
-    // Arrow rotation angle (points to active category) - always clockwise
-    arrowRotation(): number {
-      return this.currentRotation
-    },
-
     WHEEL_CONFIG() {
       return WHEEL_CONFIG
     },
@@ -254,15 +254,6 @@ export default Vue.extend({
     }
   },
 
-  watch: {
-    autoRotate(enabled: boolean): void {
-      if (enabled) {
-        this.startAutoRotate()
-      } else {
-        this.stopAutoRotate()
-      }
-    }
-  },
 
   created(): void {
     // CRITICAL: Calculate paths once in created(), NOT in computed!
@@ -310,13 +301,30 @@ export default Vue.extend({
       img.onerror = () => console.error(`Failed to load: ${cat.personImage}`)
     })
 
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (!prefersReducedMotion) {
+      // Start carousel automatically (not for reduced motion users)
+      this.startCarousel(0)
+    } else {
+      // For reduced motion: disable CSS animation, show static category 0
+      this.activeIndex = 0
+      this.centerDisplayMode = 'category'
+      // Don't start carousel
+    }
+
+    // Handle tab visibility (pause/resume on tab change)
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
+
     // Keyboard event listener
     document.addEventListener('keydown', this.handleKeyDown)
   },
 
   beforeDestroy(): void {
+    this.clearCarouselTimers()
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     document.removeEventListener('keydown', this.handleKeyDown)
-    this.stopAutoRotate()
   },
 
   methods: {
@@ -349,31 +357,41 @@ export default Vue.extend({
       return normalizedTarget
     },
 
-    selectCategory(index: number, fromAutoRotate: boolean = false): void {
+    selectCategory(index: number): void {
+      this.jumpToCategory(index)
+    },
+
+    jumpToCategory(index: number): void {
       if (index === this.activeIndex) return
 
-      if (!fromAutoRotate && this.autoRotate) {
-        this.autoRotate = false
-      }
+      // Pause carousel animation temporarily
+      this.isJumping = true
+      this.clearCarouselTimers()
 
-      const previousIndex = this.activeIndex
+      // Show selected category immediately
+      this.centerDisplayMode = 'category'
+
+      // Calculate quick jump rotation
       const targetAngle = this.categories[index].arrowAngle
       const currentBaseAngle = this.categories[this.activeIndex].arrowAngle
-
-      const normalizedTarget = this.normalizeRotationTarget(
+      this.currentRotation = this.normalizeRotationTarget(
         this.currentRotation,
         currentBaseAngle,
         targetAngle
       )
 
-      this.currentRotation = normalizedTarget
+      const previousIndex = this.activeIndex
       this.activeIndex = index
-
       this.$emit('category-change', {
         category: this.categories[index],
         index,
         previousIndex
       })
+
+      // After transition completes (600ms), resume carousel from this category
+      window.setTimeout(() => {
+        this.startCarousel(index)
+      }, 600)
     },
 
     handleKeyDown(event: KeyboardEvent): void {
@@ -392,13 +410,13 @@ export default Vue.extend({
     },
 
     selectNext(): void {
-      const next = (this.activeIndex + 1) % this.categories.length
-      this.selectCategory(next)
+      const nextIndex = (this.activeIndex + 1) % 4
+      this.jumpToCategory(nextIndex)
     },
 
     selectPrevious(): void {
-      const prev = (this.activeIndex - 1 + this.categories.length) % this.categories.length
-      this.selectCategory(prev)
+      const prevIndex = (this.activeIndex - 1 + 4) % 4
+      this.jumpToCategory(prevIndex)
     },
 
     calculateLabelPosition(angle: number): { x: number; y: number; anchor: string } {
@@ -427,24 +445,78 @@ export default Vue.extend({
       }
     },
 
-    startAutoRotate(): void {
-      this.stopAutoRotate()
-      this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
-      this.autoRotateInterval = window.setInterval(() => {
-        this.countdown--
-        if (this.countdown === 0) {
-          const next = (this.activeIndex + 1) % this.categories.length
-          this.selectCategory(next, true)
-          this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
-        }
-      }, 1000)
+    startCarousel(startFromIndex = 0): void {
+      this.clearCarouselTimers()
+      this.carouselStartTime = Date.now()
+      this.activeIndex = startFromIndex
+      this.centerDisplayMode = 'category'
+      this.isJumping = false
+
+      this.scheduleContentSwitches(startFromIndex)
     },
 
-    stopAutoRotate(): void {
-      if (this.autoRotateInterval !== null) {
-        clearInterval(this.autoRotateInterval)
-        this.autoRotateInterval = null
-        this.countdown = UI_CONFIG.AUTO_ROTATE_INTERVAL_SECONDS
+    scheduleContentSwitches(startIndex = 0): void {
+      this.clearCarouselTimers()
+
+      const CATEGORY_DURATION = 4000 // 4 seconds
+      const LOGO_DURATION = 3000     // 3 seconds
+      const SEGMENT_DURATION = CATEGORY_DURATION + LOGO_DURATION // 7 seconds
+
+      // Schedule all 4 categories starting from startIndex
+      for (let i = 0; i < 4; i++) {
+        const categoryIndex = (startIndex + i) % 4
+        const segmentStart = i * SEGMENT_DURATION
+
+        // Show category at segment start
+        this.carouselTimers.push(
+          window.setTimeout(() => {
+            if (!this.isJumping) {
+              this.activeIndex = categoryIndex
+              this.centerDisplayMode = 'category'
+              this.$emit('category-change', {
+                category: this.categories[categoryIndex],
+                index: categoryIndex,
+                previousIndex: this.activeIndex
+              })
+            }
+          }, segmentStart)
+        )
+
+        // Show logo after 4 seconds
+        this.carouselTimers.push(
+          window.setTimeout(() => {
+            if (!this.isJumping) {
+              this.centerDisplayMode = 'logo'
+            }
+          }, segmentStart + CATEGORY_DURATION)
+        )
+      }
+
+      // Loop: restart after full cycle
+      this.carouselTimers.push(
+        window.setTimeout(() => {
+          this.scheduleContentSwitches(startIndex) // Restart from same index
+        }, 4 * SEGMENT_DURATION) // 28 seconds
+      )
+    },
+
+    clearCarouselTimers(): void {
+      this.carouselTimers.forEach(id => window.clearTimeout(id))
+      this.carouselTimers = []
+    },
+
+    handleVisibilityChange(): void {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      if (prefersReducedMotion) return // Don't manage carousel for reduced motion users
+
+      if (document.hidden) {
+        // Pause carousel when tab hidden
+        this.clearCarouselTimers()
+        this.isJumping = true // Pause CSS animation
+      } else {
+        // Resume carousel when tab visible
+        this.startCarousel(this.activeIndex) // Resume from current category
       }
     }
   }
@@ -609,77 +681,6 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   }
 
   // ============================================================================
-  // AUTO-ROTATE TOGGLE
-  // ============================================================================
-  &__auto-toggle {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    margin: 0 0 60px 0;
-    padding: 0;
-
-    @media (max-width: $breakpoint-mobile) {
-      margin-bottom: 40px;
-    }
-  }
-
-  &__toggle-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  &__toggle-input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-
-    &:checked + .rotating-wheel__toggle-slider {
-      background-color: #2D9F37;
-
-      &::before {
-        transform: translateX(20px);
-      }
-    }
-
-    &:focus-visible + .rotating-wheel__toggle-slider {
-      outline: 2px solid #2D9F37;
-      outline-offset: 2px;
-    }
-  }
-
-  &__toggle-slider {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    background-color: #e0e0e0;
-    border-radius: 24px;
-    transition: background-color 300ms $easing-smooth;
-
-    &::before {
-      content: '';
-      position: absolute;
-      width: 18px;
-      height: 18px;
-      left: 3px;
-      top: 3px;
-      background-color: white;
-      border-radius: 50%;
-      transition: transform 300ms $easing-smooth;
-    }
-  }
-
-  &__toggle-text {
-    font-size: 16px;
-    font-weight: $font-weight-regular;
-    color: $color-text-secondary;
-  }
-
-  // ============================================================================
   // LAYOUT GRID
   // ============================================================================
   &__content {
@@ -770,11 +771,38 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // ARROW INDICATOR
   // ============================================================================
   &__arrow-indicator {
-    transition: transform $duration-arrow $easing-smooth;
-    pointer-events: none;  // Arrow is decorative, not interactive
+    will-change: transform;
+    pointer-events: none;
+    transform-origin: 320px 320px;
+  }
+
+  // Continuous carousel rotation (default state)
+  &__arrow-indicator--carousel {
+    animation: rotate-carousel 28s linear infinite;
+    transform: rotate(315deg); // Start position
 
     @media (prefers-reduced-motion: reduce) {
-      transition: none !important;
+      animation: none;
+      // Show static arrow at category 0
+    }
+  }
+
+  // Quick jump to user-selected category
+  &__arrow-indicator--jumping {
+    transition: transform 600ms $easing-smooth;
+    animation: none; // Pause carousel animation during jump
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none; // Instant jump for reduced motion
+    }
+  }
+
+  @keyframes rotate-carousel {
+    from {
+      transform: rotate(315deg);
+    }
+    to {
+      transform: rotate(675deg); // 315 + 360 = full rotation
     }
   }
 
@@ -848,6 +876,21 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     line-height: 1.5;
     margin: 0;
     word-wrap: break-word;
+  }
+
+  &__center-logo {
+    max-width: 200px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+
+    @media (max-width: $breakpoint-mobile) {
+      max-width: 150px;
+      max-height: 150px;
+    }
   }
 
   // ============================================================================

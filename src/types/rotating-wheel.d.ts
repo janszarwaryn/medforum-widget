@@ -3,6 +3,7 @@ export type CategoryId = 'communication' | 'marketing' | 'sales' | 'strategy'
 export type SegmentAngle = 270 | 0 | 90 | 180  // Start angles
 export type ArrowAngle = 315 | 45 | 135 | 225  // Center angles (gdzie strzałka wskazuje)
 export type HexColor = `#${string}`  // Enforces hex format
+export type CenterDisplayMode = 'category' | 'logo'
 
 // Immutable interfaces (readonly)
 export interface Point {
@@ -44,9 +45,10 @@ export interface RotatingWheelData {
   arrowTransformOrigin: string
   arrowPathSegments: ReadonlyArray<ArrowPathSegment>
   currentRotation: number
-  autoRotate: boolean
-  autoRotateInterval: number | null
-  countdown: number
+  centerDisplayMode: CenterDisplayMode
+  carouselTimers: number[]
+  carouselStartTime: number
+  isJumping: boolean
 }
 
 // Configuration object for flexibility
