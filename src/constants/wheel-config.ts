@@ -1,23 +1,21 @@
 import type { WheelConfig, WheelCategory } from '../types/rotating-wheel'
 
 export const WHEEL_CONFIG: WheelConfig = {
-  svgSize: 640,          // Zwiększone z 500 - żeby pomieścić etykiety
+  svgSize: 640,
   outerRadius: 200,
-  innerRadius: 150,      // Zmniejszone z 160 - grubszy donut
-  indicatorRadius: 260,  // Zwiększone z 240 - dalej od donuta
-  labelRadius: 260,      // Taka sama jak indicatorRadius - teksty przy kropkach
+  innerRadius: 150,
+  indicatorRadius: 260,
+  labelRadius: 260,
   animationDuration: 600,
-  get centerX() { return this.svgSize / 2 },  // Teraz 320
-  get centerY() { return this.svgSize / 2 }   // Teraz 320
+  get centerX() { return this.svgSize / 2 },
+  get centerY() { return this.svgSize / 2 }
 } as const
 
-// CRITICAL: Object.freeze() prevents Vue reactivity overhead!
-// CRITICAL: EXACT colors from design specs (not estimates!)
 export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
   Object.freeze({
     id: 'communication',
     label: 'Komunikacja',
-    color: '#2D9F37B2',  // EXACT: Green with alpha
+    color: '#2D9F37',
     segmentStartAngle: 270,
     arrowAngle: 315,
     personImage: '/images/person1.png',
@@ -27,7 +25,7 @@ export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
   Object.freeze({
     id: 'marketing',
     label: 'Marketing',
-    color: '#1790C9CC',  // EXACT: Blue with alpha
+    color: '#1790C9',
     segmentStartAngle: 0,
     arrowAngle: 45,
     personImage: '/images/person2.png',
@@ -37,7 +35,7 @@ export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
   Object.freeze({
     id: 'sales',
     label: 'Sprzedaż',
-    color: '#F3AA21CF',  // EXACT: Yellow with alpha
+    color: '#F3AA21',
     segmentStartAngle: 90,
     arrowAngle: 135,
     personImage: '/images/person3.png',
@@ -47,7 +45,7 @@ export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
   Object.freeze({
     id: 'strategy',
     label: 'Strategia',
-    color: '#F58220',  // EXACT: Orange (no alpha)
+    color: '#F58220',
     segmentStartAngle: 180,
     arrowAngle: 225,
     personImage: '/images/person4.png',
@@ -57,10 +55,10 @@ export const DEFAULT_CATEGORIES: ReadonlyArray<WheelCategory> = Object.freeze([
 ]) as ReadonlyArray<WheelCategory>
 
 export const ARROW_CONFIG = Object.freeze({
-  arcSpanDegrees: 60,        // Total arc length (2/3 of 90° between dots)
-  strokeWidth: 1.5,          // Arrow path thickness (cieńsze linie)
-  startOffsetDegrees: -60,   // Start 60° before dot (counter-clockwise)
-  endOffsetDegrees: -12,     // End wyraźnie przed kropką (12° przed kółkiem)
-  segmentCount: 10,          // Number of segments for smooth fade (więcej = płynniejszy gradient)
-  opacityStops: Object.freeze([0.05, 0.15, 0.27, 0.40, 0.53, 0.65, 0.75, 0.84, 0.92, 1.0])  // Smooth ease-in opacity
+  arcSpanDegrees: 55,
+  strokeWidth: 1.5,
+  startOffsetDegrees: -60,
+  endOffsetDegrees: -20,
+  segmentCount: 10,
+  opacityStops: Object.freeze([0.05, 0.15, 0.27, 0.40, 0.53, 0.65, 0.75, 0.84, 0.92, 1.0])
 })
