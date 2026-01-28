@@ -398,6 +398,7 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   margin: 0 auto;
   padding: 60px 20px;
   font-family: $font-family-base;
+  background-color: #F7F7F9;  // Jasno-szare tło
 
   // ============================================================================
   // TITLE
@@ -437,18 +438,23 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   // PERSONA
   // ============================================================================
   &__persona {
-    display: flex;
-    justify-content: flex-start;  // Wyrównanie do lewej
-    align-items: center;
-    min-height: 400px;  // Zmniejszone
+    position: relative;  // Kontener dla absolute child
+    min-height: 580px;  // Wysokość do dołu orbity (centerY:320 + radius:260)
+    overflow: visible;
   }
 
   &__persona-image {
-    max-width: 80%;  // Zmniejszony do 80%
-    height: auto;
+    position: absolute;  // Absolutna pozycja
+    bottom: 0;  // Przyczepione do dołu kontenera
+    left: 50%;
+    transform: translateX(-50%) scale(1.35);  // Wycentrowane + powiększone 35%
+    width: 100%;
+    height: 100%;
+    max-height: 580px;  // Maksymalna wysokość = wysokość do dołu orbity
     display: block;
-    border-radius: 8px;
-    filter: drop-shadow($shadow-md);
+    object-fit: contain;
+    object-position: center bottom;
+    z-index: 1;  // Niższy z-index - pod wykresem
   }
 
   // ============================================================================

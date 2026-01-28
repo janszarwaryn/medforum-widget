@@ -29,3 +29,16 @@ export default Vue.extend({
   }
 })
 </script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F7F7F9;
+}
+
+#app {
+  background-color: #F7F7F9;
+  min-height: 100vh;
+}
+</style>
