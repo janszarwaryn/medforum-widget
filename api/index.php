@@ -1,7 +1,12 @@
 <?php
 declare(strict_types=1);
 
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://www.rekru-medforum.jspace.pl',
+    'http://www.rekru-medforum.jspace.pl'
+];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if (in_array($origin, $allowedOrigins, true)) {

@@ -1,0 +1,68 @@
+# Node.js dependencies (reinstalled in builder stage)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs (created during Docker build)
+dist/
+
+# Development files
+src/dev.ts
+src/App.vue
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Photos folder (raw source images)
+photos/
+
+# Development server (Node.js - not used in production)
+api/server.cjs
+
+# Docker and deployment files
+.dockerignore
+Dockerfile
+docker-compose.yml
+.env.example
+index-dev.html
+DEPLOYMENT.md
+READY-FOR-COOLIFY.md
+ZMIANY-DEPLOYMENT.md
+.coolify/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Testing
+tests/
+cypress/
+*.test.ts
+*.spec.ts
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log

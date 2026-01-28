@@ -20,7 +20,9 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"php -S localhost:8000 -t api\" \"vite\" --names \"API,VITE\" --prefix-colors \"blue,green\"",
+    "dev:frontend": "vite",
+    "dev:api": "php -S localhost:8000 -t api",
     "build": "npm run type-check && vite build",
     "type-check": "vue-tsc --noEmit --skipLibCheck",
     "preview": "vite preview"
@@ -52,6 +54,7 @@
     "@types/node": "^25.0.10",
     "@vitejs/plugin-vue2": "^2.3.4",
     "@vue/tsconfig": "^0.8.1",
+    "concurrently": "^9.2.1",
     "sass": "^1.97.3",
     "terser": "^5.46.0",
     "typescript": "^5.9.3",

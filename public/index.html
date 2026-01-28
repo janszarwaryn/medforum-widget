@@ -3,15 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Medforum Widget - Development</title>
+  <title>Medforum Widget - Demo</title>
+  <link rel="icon" type="image/svg+xml" href="/images/pattern.svg">
 
   <!-- Google Fonts - Roboto (required for RotatingWheel component) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Widget CSS -->
+  <link rel="stylesheet" href="/dist/medforum-widget.css">
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="/src/dev.ts"></script>
+
+  <!-- Vue 2.7 from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script>
+
+  <!-- Widget Library (UMD format for browser) -->
+  <script src="/dist/medforum-widget.umd.js"></script>
+
+  <!-- Initialize Widget -->
+  <script>
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create Vue app with the widget
+      new Vue({
+        el: '#app',
+        components: {
+          RotatingWheel: window.MedforumWidget.RotatingWheel
+        },
+        template: '<RotatingWheel @category-change="handleCategoryChange" />',
+        methods: {
+          handleCategoryChange: function(event) {
+            console.log('Category changed:', event)
+          }
+        }
+      })
+    })
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #F7F7F9;
+    }
+
+    #app {
+      background-color: #F7F7F9;
+      min-height: 100vh;
+    }
+  </style>
 </body>
 </html>

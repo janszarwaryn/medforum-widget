@@ -423,15 +423,11 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   min-height: 400px;
   padding: 40px;
   text-align: center;
-  background-color: #fff5f5;
-  border: 2px solid #ffebeb;
-  border-radius: 8px;
-  margin: 20px;
 
   h3 {
     font-size: 24px;
-    color: #c53030;
-    margin: 15px 0 10px;
+    color: #1a1a1a;
+    margin: 0 0 10px;
     font-family: 'Roboto', sans-serif;
     font-weight: 600;
   }
@@ -444,27 +440,23 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
   }
 }
 
-.rotating-wheel__error-icon {
-  font-size: 48px;
-}
-
 .rotating-wheel__retry-button {
   padding: 12px 24px;
   font-size: 16px;
   font-family: 'Roboto', sans-serif;
   font-weight: 600;
   color: #fff;
-  background-color: #2D9F37;
+  background-color: #888;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #258a2f;
+    background-color: #666;
   }
 
   &:active {
-    background-color: #1f7326;
+    background-color: #555;
   }
 }

@@ -19,7 +19,6 @@
 
     <!-- Error State -->
     <div v-else-if="errorMessage" class="rotating-wheel__error">
-      <div class="rotating-wheel__error-icon">&#9888;</div>
       <h3>Błąd ładowania</h3>
       <p>{{ errorMessage }}</p>
       <button @click="reloadData" class="rotating-wheel__retry-button">
