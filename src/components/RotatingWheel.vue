@@ -8,14 +8,6 @@
       aria-hidden="true"
     />
 
-    <!-- Pattern SVG - right top corner -->
-    <img
-      src="/images/pattern.svg"
-      alt=""
-      class="rotating-wheel__pattern-right"
-      aria-hidden="true"
-    />
-
     <!-- Title -->
     <h2 class="rotating-wheel__title">
       Wsparcie i obsługa organizacji 360°
@@ -426,18 +418,6 @@ $shadow-indicator: 0 2px 8px rgba(0, 0, 0, 0.15) !default;
     left: 0;
     width: 350px;
     height: 350px;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.8;
-  }
-
-  &__pattern-right {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 210px;
-    height: 210px;
-    transform: rotate(180deg);
     pointer-events: none;
     z-index: 0;
     opacity: 0.8;
