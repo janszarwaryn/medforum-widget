@@ -146,9 +146,11 @@
         </svg>
 
 
-        <div class="rotating-wheel__center-content" aria-live="polite">
+        <div class="rotating-wheel__center-content"
+             aria-live="polite"
+             :aria-label="isMobile ? 'Logo Medforum' : 'Informacje o kategorii'">
           <transition name="fade-text" mode="out-in">
-            <div v-if="centerDisplayMode === 'category'"
+            <div v-if="!isMobile && centerDisplayMode === 'category'"
                  :key="`category-${activeCategory.id}`"
                  class="rotating-wheel__center-inner">
               <h3 class="rotating-wheel__center-title">
@@ -168,6 +170,17 @@
           </transition>
         </div>
       </div>
+
+      <transition name="fade-text" mode="out-in">
+        <div v-if="isMobile"
+             :key="activeCategory.id"
+             class="rotating-wheel__below-wheel-text"
+             role="region"
+             aria-live="polite">
+          <h3 class="rotating-wheel__below-wheel-title">{{ activeCategory.title }}</h3>
+          <p class="rotating-wheel__below-wheel-description">{{ activeCategory.description }}</p>
+        </div>
+      </transition>
     </div>
 
     <div class="rotating-wheel__cta">
@@ -208,7 +221,9 @@ export default Vue.extend({
       centerDisplayMode: 'category' as CenterDisplayMode,
       carouselTimers: [] as number[],
       carouselStartTime: 0,
-      isJumping: false
+      isJumping: false,
+      windowWidth: typeof window !== 'undefined' ? window.innerWidth : 1440,
+      resizeTimeout: null as number | null
     }
   },
 
@@ -225,6 +240,10 @@ export default Vue.extend({
           cat.arrowAngle
         )
       )
+    },
+
+    isMobile(): boolean {
+      return this.windowWidth <= 767
     },
 
     WHEEL_CONFIG() {
@@ -273,6 +292,9 @@ export default Vue.extend({
   },
 
   mounted(): void {
+    this.windowWidth = window.innerWidth
+    window.addEventListener('resize', this.handleResize)
+
     this.categories.forEach((cat, index) => {
       const img = new Image()
       img.loading = index === 0 ? 'eager' : 'lazy'
@@ -284,7 +306,9 @@ export default Vue.extend({
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     if (!prefersReducedMotion) {
-      this.startCarousel(0)
+      this.isMobile
+        ? (this.activeIndex = 0, this.centerDisplayMode = 'logo', this.isJumping = true)
+        : this.startCarousel(0)
     } else {
       this.activeIndex = 0
       this.centerDisplayMode = 'category'
@@ -296,6 +320,8 @@ export default Vue.extend({
 
   beforeDestroy(): void {
     this.clearCarouselTimers()
+    if (this.resizeTimeout !== null) window.clearTimeout(this.resizeTimeout)
+    window.removeEventListener('resize', this.handleResize)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     document.removeEventListener('keydown', this.handleKeyDown)
   },
@@ -339,7 +365,10 @@ export default Vue.extend({
 
       this.isJumping = true
       this.clearCarouselTimers()
-      this.centerDisplayMode = 'category'
+
+      if (!this.isMobile) {
+        this.centerDisplayMode = 'category'
+      }
 
       const targetAngle = this.categories[index].arrowAngle
       const currentBaseAngle = this.categories[this.activeIndex].arrowAngle
@@ -358,7 +387,11 @@ export default Vue.extend({
       })
 
       window.setTimeout(() => {
-        this.startCarousel(index)
+        if (this.isMobile) {
+          this.isJumping = false
+        } else {
+          this.startCarousel(index)
+        }
       }, 600)
     },
 
@@ -412,7 +445,32 @@ export default Vue.extend({
       }
     },
 
+    handleResize(): void {
+      if (this.resizeTimeout !== null) {
+        window.clearTimeout(this.resizeTimeout)
+      }
+
+      this.resizeTimeout = window.setTimeout(() => {
+        const prev = this.windowWidth
+        this.windowWidth = window.innerWidth
+
+        if ((prev <= 767) !== (this.windowWidth <= 767)) {
+          this.clearCarouselTimers()
+          this.windowWidth > 767
+            ? this.startCarousel(this.activeIndex)
+            : (this.centerDisplayMode = 'logo', this.isJumping = true)
+        }
+      }, 150)
+    },
+
     startCarousel(startFromIndex = 0): void {
+      if (this.isMobile) {
+        this.centerDisplayMode = 'logo'
+        this.activeIndex = startFromIndex
+        this.isJumping = true
+        return
+      }
+
       this.clearCarouselTimers()
       this.carouselStartTime = Date.now()
       this.activeIndex = startFromIndex

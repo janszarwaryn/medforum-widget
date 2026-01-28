@@ -46,6 +46,8 @@ export interface RotatingWheelData {
   carouselTimers: number[]
   carouselStartTime: number
   isJumping: boolean
+  windowWidth: number
+  resizeTimeout: number | null
 }
 
 export interface WheelConfig {
