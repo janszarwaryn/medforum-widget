@@ -5,7 +5,9 @@ $allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'https://www.rekru-medforum.jspace.pl',
-    'http://www.rekru-medforum.jspace.pl'
+    'http://www.rekru-medforum.jspace.pl',
+    'https://rekrum.jspace.pl',
+    'http://rekrum.jspace.pl'
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
